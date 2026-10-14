@@ -213,109 +213,146 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Top Bar
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isMobile = constraints.maxWidth < 650;
+                final titleSection = Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Menu & Products',
+                      style: TextStyle(
+                        fontSize: isMobile ? 18 : 22,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textDark,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    const Text(
+                      'Manage categories, pricing, toppings & recipes',
+                      style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                );
+
+                final actionButtons = Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        padding: EdgeInsets.symmetric(
+                            horizontal: isMobile ? 8 : 12,
+                            vertical: isMobile ? 8 : 10),
+                      ),
+                      icon: const Icon(Icons.category, size: 16),
+                      label: Text('Categories',
+                          style: TextStyle(fontSize: isMobile ? 11 : 13)),
+                      onPressed: _openCategoriesManager,
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        padding: EdgeInsets.symmetric(
+                            horizontal: isMobile ? 10 : 14,
+                            vertical: isMobile ? 8 : 10),
+                      ),
+                      icon: const Icon(Icons.add, size: 16),
+                      label: Text('Add Item',
+                          style: TextStyle(fontSize: isMobile ? 11 : 13)),
+                      onPressed: _openAddProduct,
+                    ),
+                  ],
+                );
+
+                if (isMobile) {
+                  return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text(
-                        'Menu & Products Management',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textDark,
-                        ),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        'Add, edit, set prices, pizza sizes, extra toppings, and recipes',
-                        style: TextStyle(fontSize: 13, color: AppColors.textMuted),
-                      ),
+                    children: [
+                      titleSection,
+                      const SizedBox(height: 10),
+                      actionButtons,
                     ],
-                  ),
-                ),
-                OutlinedButton.icon(
-                  icon: const Icon(Icons.category, size: 18),
-                  label: const Text('Categories'),
-                  onPressed: _openCategoriesManager,
-                ),
-                const SizedBox(width: 10),
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.add, size: 18),
-                  label: const Text('Add Product'),
-                  onPressed: _openAddProduct,
-                ),
-              ],
+                  );
+                }
+
+                return Row(
+                  children: [
+                    Expanded(child: titleSection),
+                    actionButtons,
+                  ],
+                );
+              },
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 14),
 
             // Filter & Search Row
-            Row(
-              children: [
-                // Category Filter Chips
-                Expanded(
-                  child: categoriesAsync.when(
-                    data: (categories) {
-                      return SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            Padding(
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isMobile = constraints.maxWidth < 650;
+                final chips = categoriesAsync.when(
+                  data: (categories) {
+                    return SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: FilterChip(
+                              label: const Text('All Categories'),
+                              selected: _selectedCategory == null,
+                              selectedColor: AppColors.primaryRed,
+                              labelStyle: TextStyle(
+                                color: _selectedCategory == null
+                                    ? Colors.white
+                                    : AppColors.textDark,
+                                fontWeight: _selectedCategory == null
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                                fontSize: 12,
+                              ),
+                              onSelected: (_) {
+                                setState(() => _selectedCategory = null);
+                              },
+                            ),
+                          ),
+                          ...categories.map((cat) {
+                            final isSelected = _selectedCategory == cat.id;
+                            return Padding(
                               padding: const EdgeInsets.only(right: 8),
                               child: FilterChip(
-                                label: const Text('All Categories'),
-                                selected: _selectedCategory == null,
+                                label: Text(cat.name),
+                                selected: isSelected,
                                 selectedColor: AppColors.primaryRed,
                                 labelStyle: TextStyle(
-                                  color: _selectedCategory == null
+                                  color: isSelected
                                       ? Colors.white
                                       : AppColors.textDark,
-                                  fontWeight: _selectedCategory == null
+                                  fontWeight: isSelected
                                       ? FontWeight.bold
                                       : FontWeight.normal,
+                                  fontSize: 12,
                                 ),
                                 onSelected: (_) {
-                                  setState(() => _selectedCategory = null);
+                                  setState(() => _selectedCategory = cat.id);
                                 },
                               ),
-                            ),
-                            ...categories.map((cat) {
-                              final isSelected = _selectedCategory == cat.id;
-                              return Padding(
-                                padding: const EdgeInsets.only(right: 8),
-                                child: FilterChip(
-                                  label: Text(cat.name),
-                                  selected: isSelected,
-                                  selectedColor: AppColors.primaryRed,
-                                  labelStyle: TextStyle(
-                                    color: isSelected
-                                        ? Colors.white
-                                        : AppColors.textDark,
-                                    fontWeight: isSelected
-                                        ? FontWeight.bold
-                                        : FontWeight.normal,
-                                  ),
-                                  onSelected: (_) {
-                                    setState(() => _selectedCategory = cat.id);
-                                  },
-                                ),
-                              );
-                            }),
-                          ],
-                        ),
-                      );
-                    },
-                    loading: () => const SizedBox(),
-                    error: (_, _) => const SizedBox(),
-                  ),
-                ),
-                const SizedBox(width: 14),
+                            );
+                          }),
+                        ],
+                      ),
+                    );
+                  },
+                  loading: () => const SizedBox(),
+                  error: (_, _) => const SizedBox(),
+                );
 
-                // Search Box
-                SizedBox(
-                  width: 260,
-                  height: 40,
+                final searchBox = SizedBox(
+                  width: isMobile ? double.infinity : 260,
+                  height: 38,
                   child: TextField(
                     controller: _searchController,
                     decoration: const InputDecoration(
@@ -326,8 +363,27 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen> {
                     ),
                     onChanged: (_) => setState(() {}),
                   ),
-                ),
-              ],
+                );
+
+                if (isMobile) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      chips,
+                      const SizedBox(height: 10),
+                      searchBox,
+                    ],
+                  );
+                }
+
+                return Row(
+                  children: [
+                    Expanded(child: chips),
+                    const SizedBox(width: 14),
+                    searchBox,
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 16),
 

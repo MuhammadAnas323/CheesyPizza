@@ -45,36 +45,44 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
     return Scaffold(
       appBar: AppBar(
         title: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              padding: const EdgeInsets.all(6),
+              padding: const EdgeInsets.all(5),
               decoration: BoxDecoration(
                 color: AppColors.cheeseYellow,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.local_pizza, color: AppColors.darkRed, size: 22),
+              child: const Icon(Icons.local_pizza, color: AppColors.darkRed, size: 20),
             ),
-            const SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text(
-                  'CHEESY PIZZA',
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 0.8,
+            const SizedBox(width: 8),
+            Flexible(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Text(
+                    'CHEESY PIZZA',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.6,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
-                Text(
-                  'Fast Food Cafe Management',
-                  style: TextStyle(
-                    fontSize: 10.5,
-                    color: Colors.white70,
-                    letterSpacing: 0.3,
+                  Text(
+                    'Fast Food Cafe Management',
+                    style: TextStyle(
+                      fontSize: 9.5,
+                      color: Colors.white70,
+                      letterSpacing: 0.2,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         ),
@@ -82,55 +90,86 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
           // Low stock alert indicator
           if (lowStockCount > 0)
             Padding(
-              padding: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.only(right: 4),
               child: Tooltip(
                 message: '$lowStockCount items low on stock',
-                child: TextButton.icon(
-                  style: TextButton.styleFrom(
-                    backgroundColor: AppColors.warning,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  ),
-                  icon: const Icon(Icons.warning, size: 16),
-                  label: Text(
-                    '$lowStockCount Low Stock',
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                  ),
-                  onPressed: () => _navigateToIndex(4),
-                ),
+                child: isDesktop
+                    ? TextButton.icon(
+                        style: TextButton.styleFrom(
+                          backgroundColor: AppColors.warning,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 6),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20)),
+                        ),
+                        icon: const Icon(Icons.warning, size: 16),
+                        label: Text(
+                          '$lowStockCount Low Stock',
+                          style: const TextStyle(
+                              fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
+                        onPressed: () => _navigateToIndex(4),
+                      )
+                    : IconButton(
+                        icon: Badge(
+                          label: Text('$lowStockCount'),
+                          backgroundColor: AppColors.cheeseYellow,
+                          textColor: AppColors.textDark,
+                          child: const Icon(Icons.warning_amber_rounded,
+                              color: AppColors.cheeseYellow, size: 22),
+                        ),
+                        onPressed: () => _navigateToIndex(4),
+                      ),
               ),
             ),
 
-          // Firebase connection status badge
+          // Firebase connection status badge / icon
           Padding(
-            padding: const EdgeInsets.only(right: 12),
+            padding: EdgeInsets.only(right: isDesktop ? 12 : 6),
             child: Tooltip(
               message: firebaseService.isAvailable
                   ? 'Connected to Cloud Firestore'
                   : 'Local Storage Mode Active (Offline-ready)',
-              child: Chip(
-                avatar: Icon(
-                  firebaseService.isAvailable ? Icons.cloud_done : Icons.cloud_queue,
-                  size: 15,
-                  color: firebaseService.isAvailable ? Colors.white : Colors.white70,
-                ),
-                label: Text(
-                  firebaseService.isAvailable ? 'Firestore Live' : 'Local / Offline',
-                  style: const TextStyle(fontSize: 11, color: Colors.white),
-                ),
-                backgroundColor: firebaseService.isAvailable
-                    ? AppColors.success
-                    : Colors.white.withAlpha(40),
-                padding: EdgeInsets.zero,
-                visualDensity: VisualDensity.compact,
-                side: BorderSide.none,
-              ),
+              child: isDesktop
+                  ? Chip(
+                      avatar: Icon(
+                        firebaseService.isAvailable
+                            ? Icons.cloud_done
+                            : Icons.cloud_queue,
+                        size: 15,
+                        color: firebaseService.isAvailable
+                            ? Colors.white
+                            : Colors.white70,
+                      ),
+                      label: Text(
+                        firebaseService.isAvailable
+                            ? 'Firestore Live'
+                            : 'Local / Offline',
+                        style:
+                            const TextStyle(fontSize: 11, color: Colors.white),
+                      ),
+                      backgroundColor: firebaseService.isAvailable
+                          ? AppColors.success
+                          : Colors.white.withAlpha(40),
+                      padding: EdgeInsets.zero,
+                      visualDensity: VisualDensity.compact,
+                      side: BorderSide.none,
+                    )
+                  : Icon(
+                      firebaseService.isAvailable
+                          ? Icons.cloud_done
+                          : Icons.cloud_queue,
+                      size: 20,
+                      color: firebaseService.isAvailable
+                          ? AppColors.cheeseYellow
+                          : Colors.white60,
+                    ),
             ),
           ),
 
-          // POS shortcut button
-          if (_currentIndex != 1)
+          // POS shortcut button (Desktop only, mobile has bottom bar)
+          if (isDesktop && _currentIndex != 1)
             Padding(
               padding: const EdgeInsets.only(right: 16),
               child: ElevatedButton.icon(
@@ -138,7 +177,8 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
                   backgroundColor: AppColors.cheeseYellow,
                   foregroundColor: AppColors.textDark,
                   elevation: 0,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 ),
                 icon: const Icon(Icons.point_of_sale, size: 18),
                 label: const Text(

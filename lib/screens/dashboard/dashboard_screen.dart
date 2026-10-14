@@ -31,48 +31,67 @@ class DashboardScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Top Welcome & Quick Action Bar
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: const [
-                          Icon(Icons.local_pizza, color: AppColors.primaryRed, size: 26),
-                          SizedBox(width: 8),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isMobile = constraints.maxWidth < 600;
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: const [
+                              Icon(Icons.local_pizza,
+                                  color: AppColors.primaryRed, size: 22),
+                              SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Cheesy Pizza Dashboard',
+                                  style: TextStyle(
+                                    fontSize: 19,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.textDark,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
                           Text(
-                            'Cheesy Pizza Dashboard',
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textDark,
+                            'Live summary • ${DateFormatter.format(DateTime.now())}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textMuted,
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Live operational summary for today, ${DateFormatter.format(DateTime.now())}',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: AppColors.textMuted,
-                        ),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryRed,
+                        padding: EdgeInsets.symmetric(
+                            horizontal: isMobile ? 12 : 18,
+                            vertical: isMobile ? 10 : 12),
                       ),
-                    ],
-                  ),
-                ),
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryRed,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 18, vertical: 12),
-                  ),
-                  icon: const Icon(Icons.add_shopping_cart, size: 18),
-                  label: const Text('New Order'),
-                  onPressed: onNavigateToPos,
-                ),
-              ],
+                      icon: Icon(Icons.add_shopping_cart,
+                          size: isMobile ? 16 : 18),
+                      label: Text(
+                        'New Order',
+                        style: TextStyle(fontSize: isMobile ? 12 : 14),
+                      ),
+                      onPressed: onNavigateToPos,
+                    ),
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 20),
 
@@ -80,7 +99,7 @@ class DashboardScreen extends ConsumerWidget {
             if (lowStockCount > 0) ...[
               Container(
                 margin: const EdgeInsets.only(bottom: 20),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 decoration: BoxDecoration(
                   color: AppColors.warningLight,
                   borderRadius: BorderRadius.circular(10),
@@ -89,37 +108,41 @@ class DashboardScreen extends ConsumerWidget {
                 child: Row(
                   children: [
                     const Icon(Icons.warning_amber_rounded,
-                        color: AppColors.warning, size: 24),
-                    const SizedBox(width: 12),
+                        color: AppColors.warning, size: 22),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '$lowStockCount Item(s) are running low on stock!',
+                            '$lowStockCount Item(s) low on stock!',
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
-                              fontSize: 13,
+                              fontSize: 12.5,
                               color: AppColors.warning,
                             ),
                           ),
                           const Text(
-                            'Replenish inventory to avoid running out during peak hours.',
+                            'Replenish inventory before peak hours.',
                             style: TextStyle(
                               fontSize: 11,
                               color: AppColors.textDark,
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
                     ),
-                    TextButton.icon(
+                    TextButton(
                       style: TextButton.styleFrom(
                         foregroundColor: AppColors.warning,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        visualDensity: VisualDensity.compact,
                       ),
-                      icon: const Icon(Icons.arrow_forward, size: 16),
-                      label: const Text('View Stock'),
                       onPressed: onNavigateToInventory,
+                      child: const Text('View',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
                     ),
                   ],
                 ),

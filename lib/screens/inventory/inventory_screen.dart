@@ -158,91 +158,117 @@ class InventoryScreen extends ConsumerWidget {
 
     return Scaffold(
       body: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text(
-                        'Inventory & Ingredients Management',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textDark,
-                        ),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isMobile = constraints.maxWidth < 600;
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Inventory & Ingredients',
+                            style: TextStyle(
+                              fontSize: isMobile ? 18 : 22,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textDark,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          const Text(
+                            'Track cheese, flour, chicken, buns & stock alerts',
+                            style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
                       ),
-                      SizedBox(height: 4),
-                      Text(
-                        'Track cheese, flour, chicken, buns, drinks stock and receive low-stock alerts',
-                        style:
-                            TextStyle(fontSize: 13, color: AppColors.textMuted),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        padding: EdgeInsets.symmetric(
+                            horizontal: isMobile ? 10 : 16,
+                            vertical: isMobile ? 8 : 12),
                       ),
-                    ],
-                  ),
-                ),
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.add, size: 18),
-                  label: const Text('Add Stock Item'),
-                  onPressed: () => _openAddItem(context, ref),
-                ),
-              ],
+                      icon: const Icon(Icons.add, size: 16),
+                      label: Text(
+                        'Add Item',
+                        style: TextStyle(fontSize: isMobile ? 12 : 14),
+                      ),
+                      onPressed: () => _openAddItem(context, ref),
+                    ),
+                  ],
+                );
+              },
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 14),
 
             // Metrics Summary Cards
-            Row(
-              children: [
-                Expanded(
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isMobile = constraints.maxWidth < 650;
+
+                final card1 = SizedBox(
+                  width: isMobile ? 170 : null,
                   child: Card(
                     child: Padding(
-                      padding: const EdgeInsets.all(14),
+                      padding: const EdgeInsets.all(12),
                       child: Row(
                         children: [
                           Container(
-                            padding: const EdgeInsets.all(10),
+                            padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
                               color: AppColors.lightRed,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Icon(Icons.inventory,
-                                color: AppColors.primaryRed),
+                                color: AppColors.primaryRed, size: 20),
                           ),
-                          const SizedBox(width: 12),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('Total Items',
-                                  style: TextStyle(
-                                      fontSize: 12,
-                                      color: AppColors.textMuted)),
-                              Text(
-                                '$totalItemsCount Ingredients',
-                                style: const TextStyle(
-                                    fontSize: 17, fontWeight: FontWeight.bold),
-                              ),
-                            ],
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('Total Items',
+                                    style: TextStyle(
+                                        fontSize: 11,
+                                        color: AppColors.textMuted)),
+                                Text(
+                                  '$totalItemsCount Items',
+                                  style: const TextStyle(
+                                      fontSize: 15, fontWeight: FontWeight.bold),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
+                );
+
+                final card2 = SizedBox(
+                  width: isMobile ? 170 : null,
                   child: Card(
                     color: totalLowStock > 0 ? AppColors.warningLight : null,
                     child: Padding(
-                      padding: const EdgeInsets.all(14),
+                      padding: const EdgeInsets.all(12),
                       child: Row(
                         children: [
                           Container(
-                            padding: const EdgeInsets.all(10),
+                            padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
                               color: totalLowStock > 0
                                   ? AppColors.warning.withAlpha(40)
@@ -252,109 +278,154 @@ class InventoryScreen extends ConsumerWidget {
                             child: Icon(Icons.warning_amber_rounded,
                                 color: totalLowStock > 0
                                     ? AppColors.warning
-                                    : AppColors.mediumGrey),
+                                    : AppColors.mediumGrey,
+                                size: 20),
                           ),
-                          const SizedBox(width: 12),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('Low Stock Alerts',
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('Low Stock',
+                                    style: TextStyle(
+                                        fontSize: 11,
+                                        color: AppColors.textMuted)),
+                                Text(
+                                  '$totalLowStock Items',
                                   style: TextStyle(
-                                      fontSize: 12,
-                                      color: AppColors.textMuted)),
-                              Text(
-                                '$totalLowStock Low Items',
-                                style: TextStyle(
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.bold,
-                                  color: totalLowStock > 0
-                                      ? AppColors.warning
-                                      : AppColors.textDark,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                    color: totalLowStock > 0
+                                        ? AppColors.warning
+                                        : AppColors.textDark,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ],
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
+                );
+
+                final card3 = SizedBox(
+                  width: isMobile ? 180 : null,
                   child: Card(
                     child: Padding(
-                      padding: const EdgeInsets.all(14),
+                      padding: const EdgeInsets.all(12),
                       child: Row(
                         children: [
                           Container(
-                            padding: const EdgeInsets.all(10),
+                            padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
                               color: AppColors.lightYellow,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Icon(Icons.account_balance_wallet,
-                                color: AppColors.cheeseYellow),
+                                color: AppColors.cheeseYellow, size: 20),
                           ),
-                          const SizedBox(width: 12),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('Stock Value',
-                                  style: TextStyle(
-                                      fontSize: 12,
-                                      color: AppColors.textMuted)),
-                              Text(
-                                CurrencyFormatter.format(totalValuation),
-                                style: const TextStyle(
-                                    fontSize: 17, fontWeight: FontWeight.bold),
-                              ),
-                            ],
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('Valuation',
+                                    style: TextStyle(
+                                        fontSize: 11,
+                                        color: AppColors.textMuted)),
+                                Text(
+                                  CurrencyFormatter.format(totalValuation),
+                                  style: const TextStyle(
+                                      fontSize: 15, fontWeight: FontWeight.bold),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
                     ),
                   ),
-                ),
-              ],
+                );
+
+                if (isMobile) {
+                  return SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        card1,
+                        const SizedBox(width: 8),
+                        card2,
+                        const SizedBox(width: 8),
+                        card3,
+                      ],
+                    ),
+                  );
+                }
+
+                return Row(
+                  children: [
+                    Expanded(child: card1),
+                    const SizedBox(width: 12),
+                    Expanded(child: card2),
+                    const SizedBox(width: 12),
+                    Expanded(child: card3),
+                  ],
+                );
+              },
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 14),
 
             // Filter & Search Controls
-            Row(
-              children: [
-                FilterChip(
-                  label: const Text('All Stock'),
-                  selected: !onlyLowStock,
-                  selectedColor: AppColors.primaryRed,
-                  labelStyle: TextStyle(
-                    color: !onlyLowStock ? Colors.white : AppColors.textDark,
-                    fontWeight: !onlyLowStock ? FontWeight.bold : FontWeight.normal,
-                  ),
-                  onSelected: (_) {
-                    ref
-                        .read(inventoryFilterLowStockProvider.notifier)
-                        .state = false;
-                  },
-                ),
-                const SizedBox(width: 8),
-                FilterChip(
-                  avatar: const Icon(Icons.warning, size: 14, color: Colors.white),
-                  label: Text('Low Stock ($totalLowStock)'),
-                  selected: onlyLowStock,
-                  selectedColor: AppColors.warning,
-                  labelStyle: TextStyle(
-                    color: onlyLowStock ? Colors.white : AppColors.textDark,
-                    fontWeight: onlyLowStock ? FontWeight.bold : FontWeight.normal,
-                  ),
-                  onSelected: (_) {
-                    ref
-                        .read(inventoryFilterLowStockProvider.notifier)
-                        .state = true;
-                  },
-                ),
-                const Spacer(),
-                SizedBox(
-                  width: 250,
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isMobile = constraints.maxWidth < 650;
+                final chips = Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    FilterChip(
+                      label: const Text('All Stock'),
+                      selected: !onlyLowStock,
+                      selectedColor: AppColors.primaryRed,
+                      labelStyle: TextStyle(
+                        color: !onlyLowStock ? Colors.white : AppColors.textDark,
+                        fontWeight:
+                            !onlyLowStock ? FontWeight.bold : FontWeight.normal,
+                        fontSize: 12,
+                      ),
+                      onSelected: (_) {
+                        ref
+                            .read(inventoryFilterLowStockProvider.notifier)
+                            .state = false;
+                      },
+                    ),
+                    const SizedBox(width: 8),
+                    FilterChip(
+                      avatar: const Icon(Icons.warning, size: 14, color: Colors.white),
+                      label: Text('Low Stock ($totalLowStock)'),
+                      selected: onlyLowStock,
+                      selectedColor: AppColors.warning,
+                      labelStyle: TextStyle(
+                        color: onlyLowStock ? Colors.white : AppColors.textDark,
+                        fontWeight:
+                            onlyLowStock ? FontWeight.bold : FontWeight.normal,
+                        fontSize: 12,
+                      ),
+                      onSelected: (_) {
+                        ref
+                            .read(inventoryFilterLowStockProvider.notifier)
+                            .state = true;
+                      },
+                    ),
+                  ],
+                );
+
+                final searchField = SizedBox(
+                  width: isMobile ? double.infinity : 250,
                   height: 38,
                   child: TextField(
                     decoration: const InputDecoration(
@@ -369,8 +440,30 @@ class InventoryScreen extends ConsumerWidget {
                           .state = val;
                     },
                   ),
-                ),
-              ],
+                );
+
+                if (isMobile) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: chips,
+                      ),
+                      const SizedBox(height: 10),
+                      searchField,
+                    ],
+                  );
+                }
+
+                return Row(
+                  children: [
+                    chips,
+                    const Spacer(),
+                    searchField,
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 14),
 
@@ -392,177 +485,359 @@ class InventoryScreen extends ConsumerWidget {
                         ],
                       ),
                     )
-                  : ListView.builder(
-                      itemCount: filteredItems.length,
-                      itemBuilder: (context, index) {
-                        final item = filteredItems[index];
-                        final isLow = item.isLowStock;
+                  : LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isMobile = constraints.maxWidth < 650;
 
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 10),
-                          child: Padding(
-                            padding: const EdgeInsets.all(14),
-                            child: Row(
-                              children: [
-                                // Status Indicator Icon
-                                Container(
-                                  width: 44,
-                                  height: 44,
-                                  decoration: BoxDecoration(
-                                    color: isLow
-                                        ? AppColors.warningLight
-                                        : AppColors.lightGrey,
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(
-                                      color: isLow
-                                          ? AppColors.warning
-                                          : AppColors.borderGrey,
-                                    ),
-                                  ),
-                                  child: Icon(
-                                    isLow
-                                        ? Icons.warning_amber_rounded
-                                        : Icons.inventory_2,
-                                    color: isLow
-                                        ? AppColors.warning
-                                        : AppColors.mediumGrey,
-                                  ),
-                                ),
-                                const SizedBox(width: 14),
+                        return ListView.builder(
+                          itemCount: filteredItems.length,
+                          itemBuilder: (context, index) {
+                            final item = filteredItems[index];
+                            final isLow = item.isLowStock;
 
-                                // Details
-                                Expanded(
-                                  flex: 3,
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Text(
-                                            item.name,
-                                            style: const TextStyle(
-                                              fontSize: 15,
-                                              fontWeight: FontWeight.bold,
-                                              color: AppColors.textDark,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Container(
-                                            padding:
-                                                const EdgeInsets.symmetric(
-                                                    horizontal: 6, vertical: 1),
-                                            decoration: BoxDecoration(
-                                              color: AppColors.lightGrey,
-                                              borderRadius:
-                                                  BorderRadius.circular(4),
-                                            ),
-                                            child: Text(
-                                              item.category,
-                                              style: const TextStyle(
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.w600,
-                                                color: AppColors.mediumGrey,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 3),
-                                      Text(
-                                        'Cost: ${CurrencyFormatter.format(item.costPerUnit)} / ${item.unit}  •  Updated ${DateFormatter.formatRelative(item.lastUpdated)}',
-                                        style: const TextStyle(
-                                          fontSize: 11,
-                                          color: AppColors.textMuted,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-
-                                // Stock Level
-                                Expanded(
-                                  flex: 2,
+                            if (isMobile) {
+                              return Card(
+                                margin: const EdgeInsets.only(bottom: 10),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12),
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Row(
                                         children: [
-                                          Text(
-                                            '${item.currentStock.toStringAsFixed(1)} ${item.unit}',
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold,
+                                          Container(
+                                            width: 36,
+                                            height: 36,
+                                            decoration: BoxDecoration(
+                                              color: isLow
+                                                  ? AppColors.warningLight
+                                                  : AppColors.lightGrey,
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                            child: Icon(
+                                              isLow
+                                                  ? Icons.warning_amber_rounded
+                                                  : Icons.inventory_2,
                                               color: isLow
                                                   ? AppColors.warning
-                                                  : AppColors.textDark,
+                                                  : AppColors.mediumGrey,
+                                              size: 20,
                                             ),
                                           ),
-                                          if (isLow) ...[
-                                            const SizedBox(width: 6),
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 6,
-                                                      vertical: 1),
-                                              decoration: BoxDecoration(
-                                                color: AppColors.warningLight,
-                                                borderRadius:
-                                                    BorderRadius.circular(4),
-                                                border: Border.all(
-                                                    color: AppColors.warning),
-                                              ),
-                                              child: const Text(
-                                                'LOW STOCK',
+                                          const SizedBox(width: 10),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Row(
+                                                  children: [
+                                                    Text(
+                                                      item.name,
+                                                      style: const TextStyle(
+                                                        fontSize: 14,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        color: AppColors.textDark,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(width: 6),
+                                                    Container(
+                                                      padding:
+                                                          const EdgeInsets.symmetric(
+                                                              horizontal: 5,
+                                                              vertical: 1),
+                                                      decoration: BoxDecoration(
+                                                        color: AppColors.lightGrey,
+                                                        borderRadius:
+                                                            BorderRadius.circular(4),
+                                                      ),
+                                                      child: Text(
+                                                        item.category,
+                                                        style: const TextStyle(
+                                                          fontSize: 9.5,
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                          color: AppColors.mediumGrey,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                                Text(
+                                                  '${CurrencyFormatter.format(item.costPerUnit)} / ${item.unit}',
+                                                  style: const TextStyle(
+                                                    fontSize: 11,
+                                                    color: AppColors.textMuted,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.end,
+                                            children: [
+                                              Text(
+                                                '${item.currentStock.toStringAsFixed(1)} ${item.unit}',
                                                 style: TextStyle(
-                                                  color: AppColors.warning,
-                                                  fontSize: 9,
+                                                  fontSize: 15,
                                                   fontWeight: FontWeight.bold,
+                                                  color: isLow
+                                                      ? AppColors.warning
+                                                      : AppColors.textDark,
                                                 ),
                                               ),
-                                            ),
-                                          ],
+                                              if (isLow)
+                                                const Text(
+                                                  'LOW STOCK',
+                                                  style: TextStyle(
+                                                    color: AppColors.warning,
+                                                    fontSize: 9,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                            ],
+                                          ),
                                         ],
                                       ),
-                                      Text(
-                                        'Alert at <= ${item.minStockAlert.toStringAsFixed(1)} ${item.unit}',
-                                        style: const TextStyle(
-                                          fontSize: 11,
-                                          color: AppColors.textMuted,
-                                        ),
+                                      const Divider(height: 14),
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            'Alert <= ${item.minStockAlert.toStringAsFixed(1)} ${item.unit}',
+                                            style: const TextStyle(
+                                                fontSize: 11,
+                                                color: AppColors.textMuted),
+                                          ),
+                                          Row(
+                                            children: [
+                                              ElevatedButton.icon(
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor:
+                                                      AppColors.success,
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                          horizontal: 10,
+                                                          vertical: 6),
+                                                  visualDensity:
+                                                      VisualDensity.compact,
+                                                ),
+                                                icon: const Icon(Icons.add,
+                                                    size: 14),
+                                                label: const Text('Restock',
+                                                    style:
+                                                        TextStyle(fontSize: 11)),
+                                                onPressed: () =>
+                                                    _openRestockDialog(
+                                                        context, ref, item),
+                                              ),
+                                              const SizedBox(width: 4),
+                                              IconButton(
+                                                icon: const Icon(Icons.edit,
+                                                    size: 16,
+                                                    color: AppColors.mediumGrey),
+                                                visualDensity:
+                                                    VisualDensity.compact,
+                                                onPressed: () => _openEditItem(
+                                                    context, ref, item),
+                                              ),
+                                              IconButton(
+                                                icon: const Icon(
+                                                    Icons.delete_outline,
+                                                    size: 16,
+                                                    color: AppColors.danger),
+                                                visualDensity:
+                                                    VisualDensity.compact,
+                                                onPressed: () => _confirmDelete(
+                                                    context, ref, item),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
                                       ),
                                     ],
                                   ),
                                 ),
+                              );
+                            }
 
-                                // Restock & Edit Actions
-                                ElevatedButton.icon(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.success,
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 8),
-                                  ),
-                                  icon: const Icon(Icons.add, size: 16),
-                                  label: const Text('Restock'),
-                                  onPressed: () =>
-                                      _openRestockDialog(context, ref, item),
+                            return Card(
+                              margin: const EdgeInsets.only(bottom: 10),
+                              child: Padding(
+                                padding: const EdgeInsets.all(14),
+                                child: Row(
+                                  children: [
+                                    // Status Indicator Icon
+                                    Container(
+                                      width: 44,
+                                      height: 44,
+                                      decoration: BoxDecoration(
+                                        color: isLow
+                                            ? AppColors.warningLight
+                                            : AppColors.lightGrey,
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: isLow
+                                              ? AppColors.warning
+                                              : AppColors.borderGrey,
+                                        ),
+                                      ),
+                                      child: Icon(
+                                        isLow
+                                            ? Icons.warning_amber_rounded
+                                            : Icons.inventory_2,
+                                        color: isLow
+                                            ? AppColors.warning
+                                            : AppColors.mediumGrey,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 14),
+
+                                    // Details
+                                    Expanded(
+                                      flex: 3,
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Text(
+                                                item.name,
+                                                style: const TextStyle(
+                                                  fontSize: 15,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: AppColors.textDark,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 6,
+                                                        vertical: 1),
+                                                decoration: BoxDecoration(
+                                                  color: AppColors.lightGrey,
+                                                  borderRadius:
+                                                      BorderRadius.circular(4),
+                                                ),
+                                                child: Text(
+                                                  item.category,
+                                                  style: const TextStyle(
+                                                    fontSize: 10,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: AppColors.mediumGrey,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 3),
+                                          Text(
+                                            'Cost: ${CurrencyFormatter.format(item.costPerUnit)} / ${item.unit}  •  Updated ${DateFormatter.formatRelative(item.lastUpdated)}',
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                              color: AppColors.textMuted,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+
+                                    // Stock Level
+                                    Expanded(
+                                      flex: 2,
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Text(
+                                                '${item.currentStock.toStringAsFixed(1)} ${item.unit}',
+                                                style: TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: isLow
+                                                      ? AppColors.warning
+                                                      : AppColors.textDark,
+                                                ),
+                                              ),
+                                              if (isLow) ...[
+                                                const SizedBox(width: 6),
+                                                Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                          horizontal: 6,
+                                                          vertical: 1),
+                                                  decoration: BoxDecoration(
+                                                    color: AppColors
+                                                        .warningLight,
+                                                    borderRadius:
+                                                        BorderRadius.circular(4),
+                                                    border: Border.all(
+                                                        color:
+                                                            AppColors.warning),
+                                                  ),
+                                                  child: const Text(
+                                                    'LOW STOCK',
+                                                    style: TextStyle(
+                                                      color: AppColors.warning,
+                                                      fontSize: 9,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ],
+                                          ),
+                                          Text(
+                                            'Alert at <= ${item.minStockAlert.toStringAsFixed(1)} ${item.unit}',
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                              color: AppColors.textMuted,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+
+                                    // Restock & Edit Actions
+                                    ElevatedButton.icon(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.success,
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 12, vertical: 8),
+                                      ),
+                                      icon: const Icon(Icons.add, size: 16),
+                                      label: const Text('Restock'),
+                                      onPressed: () =>
+                                          _openRestockDialog(context, ref, item),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    IconButton(
+                                      icon: const Icon(Icons.edit,
+                                          size: 18,
+                                          color: AppColors.mediumGrey),
+                                      onPressed: () =>
+                                          _openEditItem(context, ref, item),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.delete_outline,
+                                          size: 18, color: AppColors.danger),
+                                      onPressed: () =>
+                                          _confirmDelete(context, ref, item),
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(width: 6),
-                                IconButton(
-                                  icon: const Icon(Icons.edit,
-                                      size: 18, color: AppColors.mediumGrey),
-                                  onPressed: () =>
-                                      _openEditItem(context, ref, item),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.delete_outline,
-                                      size: 18, color: AppColors.danger),
-                                  onPressed: () =>
-                                      _confirmDelete(context, ref, item),
-                                ),
-                              ],
-                            ),
-                          ),
+                              ),
+                            );
+                          },
                         );
                       },
                     ),

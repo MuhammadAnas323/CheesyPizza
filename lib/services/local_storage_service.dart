@@ -14,109 +14,144 @@ class LocalStorageService {
   static const String _initializedKey = 'cheesy_db_initialized';
 
   SharedPreferences? _prefs;
+  bool _isInitializing = false;
+
+  Future<SharedPreferences> _getPrefs() async {
+    _prefs ??= await SharedPreferences.getInstance();
+    return _prefs!;
+  }
 
   Future<void> init() async {
-    _prefs ??= await SharedPreferences.getInstance();
-    final bool isInitialized = _prefs!.getBool(_initializedKey) ?? false;
-    if (!isInitialized) {
-      await _seedDefaultData();
-      await _prefs!.setBool(_initializedKey, true);
+    if (_isInitializing) return;
+    _isInitializing = true;
+    try {
+      final prefs = await _getPrefs();
+      final bool isInitialized = prefs.getBool(_initializedKey) ?? false;
+      if (!isInitialized) {
+        // Mark as initialized first to prevent any potential recursive loop
+        await prefs.setBool(_initializedKey, true);
+        await _seedDefaultData();
+      }
+    } catch (_) {
+      // Ignore or log error
+    } finally {
+      _isInitializing = false;
     }
   }
 
   Future<void> _seedDefaultData() async {
-    await saveCategories(DefaultData.defaultCategories);
-    await saveProducts(DefaultData.defaultProducts);
-    await saveInventory(DefaultData.defaultInventory);
-    await saveOrders(DefaultData.samplePastOrders);
+    final prefs = await _getPrefs();
+    await prefs.setString(
+      _categoriesKey,
+      jsonEncode(DefaultData.defaultCategories.map((c) => c.toMap()).toList()),
+    );
+    await prefs.setString(
+      _productsKey,
+      jsonEncode(DefaultData.defaultProducts.map((p) => p.toMap()).toList()),
+    );
+    await prefs.setString(
+      _inventoryKey,
+      jsonEncode(DefaultData.defaultInventory.map((i) => i.toMap()).toList()),
+    );
+    await prefs.setString(
+      _ordersKey,
+      jsonEncode(DefaultData.samplePastOrders.map((o) => o.toMap()).toList()),
+    );
   }
 
   // Categories
   Future<List<CategoryModel>> getCategories() async {
-    await init();
-    final jsonStr = _prefs!.getString(_categoriesKey);
+    final prefs = await _getPrefs();
+    final jsonStr = prefs.getString(_categoriesKey);
     if (jsonStr == null || jsonStr.isEmpty) {
       return DefaultData.defaultCategories;
     }
     try {
       final List<dynamic> list = jsonDecode(jsonStr);
-      return list.map((e) => CategoryModel.fromMap(Map<String, dynamic>.from(e))).toList();
+      return list
+          .map((e) => CategoryModel.fromMap(Map<String, dynamic>.from(e)))
+          .toList();
     } catch (_) {
       return DefaultData.defaultCategories;
     }
   }
 
   Future<void> saveCategories(List<CategoryModel> categories) async {
-    await init();
+    final prefs = await _getPrefs();
     final jsonStr = jsonEncode(categories.map((c) => c.toMap()).toList());
-    await _prefs!.setString(_categoriesKey, jsonStr);
+    await prefs.setString(_categoriesKey, jsonStr);
   }
 
   // Products
   Future<List<ProductModel>> getProducts() async {
-    await init();
-    final jsonStr = _prefs!.getString(_productsKey);
+    final prefs = await _getPrefs();
+    final jsonStr = prefs.getString(_productsKey);
     if (jsonStr == null || jsonStr.isEmpty) {
       return DefaultData.defaultProducts;
     }
     try {
       final List<dynamic> list = jsonDecode(jsonStr);
-      return list.map((e) => ProductModel.fromMap(Map<String, dynamic>.from(e))).toList();
+      return list
+          .map((e) => ProductModel.fromMap(Map<String, dynamic>.from(e)))
+          .toList();
     } catch (_) {
       return DefaultData.defaultProducts;
     }
   }
 
   Future<void> saveProducts(List<ProductModel> products) async {
-    await init();
+    final prefs = await _getPrefs();
     final jsonStr = jsonEncode(products.map((p) => p.toMap()).toList());
-    await _prefs!.setString(_productsKey, jsonStr);
+    await prefs.setString(_productsKey, jsonStr);
   }
 
   // Inventory
   Future<List<InventoryItem>> getInventory() async {
-    await init();
-    final jsonStr = _prefs!.getString(_inventoryKey);
+    final prefs = await _getPrefs();
+    final jsonStr = prefs.getString(_inventoryKey);
     if (jsonStr == null || jsonStr.isEmpty) {
       return DefaultData.defaultInventory;
     }
     try {
       final List<dynamic> list = jsonDecode(jsonStr);
-      return list.map((e) => InventoryItem.fromMap(Map<String, dynamic>.from(e))).toList();
+      return list
+          .map((e) => InventoryItem.fromMap(Map<String, dynamic>.from(e)))
+          .toList();
     } catch (_) {
       return DefaultData.defaultInventory;
     }
   }
 
   Future<void> saveInventory(List<InventoryItem> items) async {
-    await init();
+    final prefs = await _getPrefs();
     final jsonStr = jsonEncode(items.map((i) => i.toMap()).toList());
-    await _prefs!.setString(_inventoryKey, jsonStr);
+    await prefs.setString(_inventoryKey, jsonStr);
   }
 
   // Orders
   Future<List<OrderModel>> getOrders() async {
-    await init();
-    final jsonStr = _prefs!.getString(_ordersKey);
+    final prefs = await _getPrefs();
+    final jsonStr = prefs.getString(_ordersKey);
     if (jsonStr == null || jsonStr.isEmpty) {
       return DefaultData.samplePastOrders;
     }
     try {
       final List<dynamic> list = jsonDecode(jsonStr);
-      return list.map((e) => OrderModel.fromMap(Map<String, dynamic>.from(e))).toList();
+      return list
+          .map((e) => OrderModel.fromMap(Map<String, dynamic>.from(e)))
+          .toList();
     } catch (_) {
       return DefaultData.samplePastOrders;
     }
   }
 
   Future<void> saveOrders(List<OrderModel> orders) async {
-    await init();
+    final prefs = await _getPrefs();
     final jsonStr = jsonEncode(orders.map((o) => o.toMap()).toList());
-    await _prefs!.setString(_ordersKey, jsonStr);
+    await prefs.setString(_ordersKey, jsonStr);
   }
 
   Future<void> resetToDefaults() async {
-    await init();
     await _seedDefaultData();
   }
 }
