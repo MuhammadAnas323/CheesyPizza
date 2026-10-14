@@ -1,6 +1,8 @@
 import 'dart:developer' as dev;
+import 'dart:io' show Platform;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../models/category_model.dart';
 import '../models/product_model.dart';
 import '../models/inventory_model.dart';
@@ -18,7 +20,27 @@ class FirebaseService {
 
   bool get isAvailable => _isInitialized && _firestore != null;
 
+  /// Returns true if Firebase is supported on this platform.
+  /// Firebase C++ Windows SDK has known CMake issues — skipped on desktop.
+  bool get _isPlatformSupported {
+    if (kIsWeb) return true;
+    try {
+      return Platform.isAndroid || Platform.isIOS;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<void> init() async {
+    // Skip Firebase entirely on unsupported desktop platforms (Windows, Linux, macOS)
+    if (!_isPlatformSupported) {
+      dev.log(
+        'Firebase skipped on this platform — app runs in LocalStorage-only mode.',
+        name: 'FirebaseService',
+      );
+      return;
+    }
+
     try {
       if (Firebase.apps.isNotEmpty) {
         _isInitialized = true;

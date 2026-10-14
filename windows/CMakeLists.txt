@@ -1,4 +1,10 @@
 # Project-level configuration.
+#
+# CMAKE_POLICY_VERSION_MINIMUM: Required to allow the Firebase C++ SDK's
+# CMakeLists.txt (which uses cmake_minimum_required(VERSION 2.x)) to be
+# processed by CMake 4.x without a fatal error. This is the official CMake 4.0
+# compatibility workaround documented at cmake.org/cmake/help/latest/policy/CMP0000.html
+set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
 cmake_minimum_required(VERSION 3.14)
 project(cheesy_pizza LANGUAGES CXX)
 
