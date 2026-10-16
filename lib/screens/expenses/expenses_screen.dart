@@ -116,6 +116,201 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
     );
   }
 
+  void _showExpenseDetailsDialog(ExpenseModel expense) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            CircleAvatar(
+              backgroundColor: AppColors.lightRed,
+              radius: 18,
+              child: const Icon(Icons.receipt, color: AppColors.primaryRed, size: 20),
+            ),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Text(
+                'Expense Details',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.close, size: 20),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              onPressed: () => Navigator.pop(ctx),
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: 380,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppColors.lightRed.withAlpha(50),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.primaryRed.withAlpha(40)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Amount Paid',
+                      style: TextStyle(fontSize: 11.5, color: AppColors.textMuted),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      CurrencyFormatter.format(expense.amount),
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primaryRed,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Description / Note',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textMuted),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                expense.note,
+                style: const TextStyle(
+                  fontSize: 14.5,
+                  color: AppColors.textDark,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 14),
+              const Text(
+                'Date & Time',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textMuted),
+              ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  const Icon(Icons.calendar_today, size: 14, color: AppColors.textMuted),
+                  const SizedBox(width: 6),
+                  Text(
+                    DateFormatter.formatDateTime(expense.createdAt),
+                    style: const TextStyle(fontSize: 13, color: AppColors.textDark),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          OutlinedButton.icon(
+            icon: const Icon(Icons.edit, size: 15, color: Colors.blue),
+            label: const Text('Edit', style: TextStyle(color: Colors.blue)),
+            onPressed: () {
+              Navigator.pop(ctx);
+              _showExpenseDialog(expense: expense);
+            },
+          ),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.danger,
+              foregroundColor: Colors.white,
+            ),
+            icon: const Icon(Icons.delete, size: 15),
+            label: const Text('Delete'),
+            onPressed: () {
+              Navigator.pop(ctx);
+              _confirmDelete(expense);
+            },
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showExpenseOptionsSheet(ExpenseModel expense) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(top: 10, bottom: 6),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      expense.note,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Text(
+                    CurrencyFormatter.format(expense.amount),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primaryRed,
+                      fontSize: 15,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.info_outline, color: AppColors.primaryRed),
+              title: const Text('View Details'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _showExpenseDetailsDialog(expense);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.edit, color: Colors.blue),
+              title: const Text('Edit Expense'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _showExpenseDialog(expense: expense);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete, color: AppColors.danger),
+              title: const Text('Delete Expense', style: TextStyle(color: AppColors.danger)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _confirmDelete(expense);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _confirmDelete(ExpenseModel expense) {
     showDialog(
       context: context,
@@ -366,53 +561,40 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                           final expense = filtered[index];
                           return Card(
                             margin: const EdgeInsets.only(bottom: 10),
-                            child: ListTile(
-                              contentPadding:
-                                  const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                              leading: CircleAvatar(
-                                backgroundColor: AppColors.lightRed,
-                                child: const Icon(Icons.receipt, color: AppColors.primaryRed, size: 18),
-                              ),
-                              title: Text(
-                                expense.note,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13.5,
-                                  color: AppColors.textDark,
+                            clipBehavior: Clip.antiAlias,
+                            child: InkWell(
+                              onTap: () => _showExpenseDetailsDialog(expense),
+                              onLongPress: () => _showExpenseOptionsSheet(expense),
+                              child: ListTile(
+                                contentPadding:
+                                    const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                                leading: CircleAvatar(
+                                  backgroundColor: AppColors.lightRed,
+                                  child: const Icon(Icons.receipt, color: AppColors.primaryRed, size: 18),
                                 ),
-                              ),
-                              subtitle: Text(
-                                DateFormatter.formatDateTime(expense.createdAt),
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  color: AppColors.textMuted,
+                                title: Text(
+                                  expense.note,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13.5,
+                                    color: AppColors.textDark,
+                                  ),
                                 ),
-                              ),
-                              trailing: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    CurrencyFormatter.format(expense.amount),
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
-                                      color: AppColors.primaryRed,
-                                    ),
+                                subtitle: Text(
+                                  DateFormatter.formatDateTime(expense.createdAt),
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: AppColors.textMuted,
                                   ),
-                                  const SizedBox(width: 4),
-                                  IconButton(
-                                    icon: const Icon(Icons.edit, size: 16, color: Colors.blue),
-                                    constraints: const BoxConstraints(),
-                                    padding: const EdgeInsets.all(4),
-                                    onPressed: () => _showExpenseDialog(expense: expense),
+                                ),
+                                trailing: Text(
+                                  CurrencyFormatter.format(expense.amount),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                    color: AppColors.primaryRed,
                                   ),
-                                  IconButton(
-                                    icon: const Icon(Icons.delete, size: 16, color: AppColors.danger),
-                                    constraints: const BoxConstraints(),
-                                    padding: const EdgeInsets.all(4),
-                                    onPressed: () => _confirmDelete(expense),
-                                  ),
-                                ],
+                                ),
                               ),
                             ),
                           );

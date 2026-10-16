@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/order_model.dart';
 import 'order_provider.dart';
+import 'expense_provider.dart';
 
 enum ReportTimePeriod {
   today('Today'),
@@ -27,12 +28,16 @@ class ProductMetric {
 
 class SalesReportData {
   final double totalRevenue;
+  final double totalExpenses;
+  final double netProfit;
   final int totalOrdersCount;
   final List<ProductMetric> productMetrics;
   final List<OrderModel> orders;
 
   const SalesReportData({
     this.totalRevenue = 0.0,
+    this.totalExpenses = 0.0,
+    this.netProfit = 0.0,
     this.totalOrdersCount = 0,
     this.productMetrics = const [],
     this.orders = const [],
@@ -48,7 +53,10 @@ final customDateRangeProvider = StateProvider<DateTimeRange>((ref) {
   return DateTimeRange(start: start, end: end);
 });
 
-SalesReportData _calculateReportForOrders(List<OrderModel> orders) {
+SalesReportData _calculateReportForOrders({
+  required List<OrderModel> orders,
+  double totalExpenses = 0.0,
+}) {
   // STRICT RULE: Only completed orders count towards completed sales totals and reports
   final completedOrders = orders.where((o) => o.status.toLowerCase() == 'completed').toList();
 
@@ -73,6 +81,8 @@ SalesReportData _calculateReportForOrders(List<OrderModel> orders) {
 
   return SalesReportData(
     totalRevenue: totalRevenue,
+    totalExpenses: totalExpenses,
+    netProfit: totalRevenue - totalExpenses,
     totalOrdersCount: completedOrders.length,
     productMetrics: prodList,
     orders: orders, // Keep all orders in list for history viewing
@@ -81,6 +91,8 @@ SalesReportData _calculateReportForOrders(List<OrderModel> orders) {
 
 final todayDashboardMetricsProvider = Provider<SalesReportData>((ref) {
   final ordersAsync = ref.watch(orderNotifierProvider);
+  final expensesAsync = ref.watch(expenseNotifierProvider);
+
   return ordersAsync.maybeWhen(
     data: (allOrders) {
       final now = DateTime.now();
@@ -89,7 +101,20 @@ final todayDashboardMetricsProvider = Provider<SalesReportData>((ref) {
             order.createdAt.month == now.month &&
             order.createdAt.day == now.day;
       }).toList();
-      return _calculateReportForOrders(todayOrders);
+
+      final todayExpenses = expensesAsync.maybeWhen(
+        data: (allExpenses) => allExpenses.where((e) {
+          return e.createdAt.year == now.year &&
+              e.createdAt.month == now.month &&
+              e.createdAt.day == now.day;
+        }).fold(0.0, (sum, e) => sum + e.amount),
+        orElse: () => 0.0,
+      );
+
+      return _calculateReportForOrders(
+        orders: todayOrders,
+        totalExpenses: todayExpenses,
+      );
     },
     orElse: () => const SalesReportData(),
   );
@@ -98,48 +123,69 @@ final todayDashboardMetricsProvider = Provider<SalesReportData>((ref) {
 /// Dashboard / Reports filtered by period provider
 final filteredSalesReportProvider = Provider<SalesReportData>((ref) {
   final ordersAsync = ref.watch(orderNotifierProvider);
+  final expensesAsync = ref.watch(expenseNotifierProvider);
   final period = ref.watch(reportTimePeriodProvider);
   final customRange = ref.watch(customDateRangeProvider);
 
   return ordersAsync.maybeWhen(
     data: (allOrders) {
       final now = DateTime.now();
-      List<OrderModel> filtered = [];
+      List<OrderModel> filteredOrders = [];
+      double filteredExpenses = 0.0;
+      final allExpenses = expensesAsync.asData?.value ?? [];
 
       switch (period) {
         case ReportTimePeriod.today:
-          filtered = allOrders.where((o) {
+          filteredOrders = allOrders.where((o) {
             return o.createdAt.year == now.year &&
                 o.createdAt.month == now.month &&
                 o.createdAt.day == now.day;
           }).toList();
+          filteredExpenses = allExpenses.where((e) {
+            return e.createdAt.year == now.year &&
+                e.createdAt.month == now.month &&
+                e.createdAt.day == now.day;
+          }).fold(0.0, (sum, e) => sum + e.amount);
           break;
         case ReportTimePeriod.thisWeek:
           final weekStart = DateTime(now.year, now.month, now.day)
               .subtract(Duration(days: now.weekday - 1));
-          filtered = allOrders
+          filteredOrders = allOrders
               .where((o) => o.createdAt.isAfter(weekStart.subtract(const Duration(seconds: 1))))
               .toList();
+          filteredExpenses = allExpenses
+              .where((e) => e.createdAt.isAfter(weekStart.subtract(const Duration(seconds: 1))))
+              .fold(0.0, (sum, e) => sum + e.amount);
           break;
         case ReportTimePeriod.thisMonth:
           final monthStart = DateTime(now.year, now.month, 1);
-          filtered = allOrders
+          filteredOrders = allOrders
               .where((o) => o.createdAt.isAfter(monthStart.subtract(const Duration(seconds: 1))))
               .toList();
+          filteredExpenses = allExpenses
+              .where((e) => e.createdAt.isAfter(monthStart.subtract(const Duration(seconds: 1))))
+              .fold(0.0, (sum, e) => sum + e.amount);
           break;
         case ReportTimePeriod.custom:
           final start = DateTime(
               customRange.start.year, customRange.start.month, customRange.start.day, 0, 0, 0);
           final end = DateTime(
               customRange.end.year, customRange.end.month, customRange.end.day, 23, 59, 59);
-          filtered = allOrders.where((o) {
+          filteredOrders = allOrders.where((o) {
             return o.createdAt.isAfter(start.subtract(const Duration(seconds: 1))) &&
                 o.createdAt.isBefore(end.add(const Duration(seconds: 1)));
           }).toList();
+          filteredExpenses = allExpenses.where((e) {
+            return e.createdAt.isAfter(start.subtract(const Duration(seconds: 1))) &&
+                e.createdAt.isBefore(end.add(const Duration(seconds: 1)));
+          }).fold(0.0, (sum, e) => sum + e.amount);
           break;
       }
 
-      return _calculateReportForOrders(filtered);
+      return _calculateReportForOrders(
+        orders: filteredOrders,
+        totalExpenses: filteredExpenses,
+      );
     },
     orElse: () => const SalesReportData(),
   );

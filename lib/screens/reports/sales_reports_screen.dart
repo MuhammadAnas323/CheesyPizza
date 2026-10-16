@@ -90,24 +90,50 @@ class SalesReportsScreen extends ConsumerWidget {
             // Metrics Summary Cards
             LayoutBuilder(
               builder: (context, constraints) {
-                int crossAxisCount = constraints.maxWidth > 700 ? 2 : 1;
+                int crossAxisCount;
+                double aspectRatio;
+                if (constraints.maxWidth > 900) {
+                  crossAxisCount = 4;
+                  aspectRatio = 2.0;
+                } else if (constraints.maxWidth > 550) {
+                  crossAxisCount = 2;
+                  aspectRatio = 2.3;
+                } else {
+                  crossAxisCount = 1;
+                  aspectRatio = 2.8;
+                }
+
                 return GridView.count(
                   crossAxisCount: crossAxisCount,
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                  childAspectRatio: constraints.maxWidth > 700 ? 2.6 : 2.8,
+                  crossAxisSpacing: 14,
+                  mainAxisSpacing: 14,
+                  childAspectRatio: aspectRatio,
                   children: [
                     _buildReportMetricCard(
-                      title: "Total Completed Sales (${selectedPeriod.label})",
+                      title: "Total Sales (${selectedPeriod.label})",
                       value: CurrencyFormatter.format(reportData.totalRevenue),
                       icon: Icons.payments,
                       iconColor: AppColors.primaryRed,
                       bgColor: AppColors.lightRed,
                     ),
                     _buildReportMetricCard(
-                      title: "Total Completed Orders",
+                      title: "Total Expenses (${selectedPeriod.label})",
+                      value: CurrencyFormatter.format(reportData.totalExpenses),
+                      icon: Icons.receipt_long,
+                      iconColor: Colors.deepOrange,
+                      bgColor: Colors.deepOrange.withAlpha(25),
+                    ),
+                    _buildReportMetricCard(
+                      title: "Net Profit / Balance",
+                      value: CurrencyFormatter.format(reportData.netProfit),
+                      icon: Icons.account_balance_wallet,
+                      iconColor: reportData.netProfit >= 0 ? AppColors.success : AppColors.danger,
+                      bgColor: reportData.netProfit >= 0 ? AppColors.successLight : AppColors.lightRed,
+                    ),
+                    _buildReportMetricCard(
+                      title: "Completed Orders",
                       value: "${reportData.totalOrdersCount}",
                       icon: Icons.check_circle,
                       iconColor: AppColors.success,
