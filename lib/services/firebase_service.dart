@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer' as dev;
 import 'dart:io' show Platform;
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -5,8 +6,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../models/category_model.dart';
 import '../models/product_model.dart';
-import '../models/inventory_model.dart';
 import '../models/order_model.dart';
+import '../models/expense_model.dart';
 
 import '../firebase_options.dart';
 
@@ -20,24 +21,31 @@ class FirebaseService {
 
   bool get isAvailable => _isInitialized && _firestore != null;
 
-  /// Returns true if Firebase is supported on this platform.
-  /// Firebase C++ Windows SDK has known CMake issues — skipped on desktop.
   bool get _isPlatformSupported {
     if (kIsWeb) return true;
     try {
-      return Platform.isAndroid || Platform.isIOS;
+      return Platform.isAndroid || Platform.isIOS || Platform.isWindows || Platform.isMacOS;
     } catch (_) {
       return false;
     }
   }
 
+  bool _isInitStarted = false;
+  final Completer<void> _initCompleter = Completer<void>();
+
+  Future<void> ensureInitialized() {
+    if (!_isInitStarted || _initCompleter.isCompleted) return Future.value();
+    return _initCompleter.future;
+  }
+
   Future<void> init() async {
-    // Skip Firebase entirely on unsupported desktop platforms (Windows, Linux, macOS)
+    _isInitStarted = true;
     if (!_isPlatformSupported) {
       dev.log(
         'Firebase skipped on this platform — app runs in LocalStorage-only mode.',
         name: 'FirebaseService',
       );
+      if (!_initCompleter.isCompleted) _initCompleter.complete();
       return;
     }
 
@@ -50,7 +58,7 @@ class FirebaseService {
         try {
           await Firebase.initializeApp(
             options: DefaultFirebaseOptions.currentPlatform,
-          ).timeout(const Duration(seconds: 5));
+          ).timeout(const Duration(seconds: 8));
           _isInitialized = true;
           _firestore = FirebaseFirestore.instance;
           dev.log('Firebase initialized successfully for cheesypizza-2fc77.',
@@ -67,6 +75,8 @@ class FirebaseService {
       _isInitialized = false;
       _firestore = null;
       dev.log('FirebaseService error: $e', name: 'FirebaseService');
+    } finally {
+      if (!_initCompleter.isCompleted) _initCompleter.complete();
     }
   }
 
@@ -75,16 +85,34 @@ class FirebaseService {
       _firestore?.collection('categories');
   CollectionReference? get _productsCol =>
       _firestore?.collection('products');
-  CollectionReference? get _inventoryCol =>
-      _firestore?.collection('inventory');
   CollectionReference? get _ordersCol =>
       _firestore?.collection('orders');
+  CollectionReference? get _expensesCol =>
+      _firestore?.collection('expenses');
 
   // Categories
+  Future<List<CategoryModel>> getCategories() async {
+    if (!isAvailable) return [];
+    try {
+      final snapshot = await _categoriesCol!.get();
+      return snapshot.docs
+          .map((doc) => CategoryModel.fromMap(
+              Map<String, dynamic>.from(doc.data() as Map), doc.id))
+          .toList();
+    } catch (e) {
+      dev.log('Error fetching categories from Firestore: $e', name: 'FirebaseService');
+      return [];
+    }
+  }
+
   Future<void> saveCategory(CategoryModel category) async {
-    if (!isAvailable) return;
+    if (!isAvailable) {
+      dev.log('Firebase not available when saving category', name: 'FirebaseService');
+      return;
+    }
     try {
       await _categoriesCol!.doc(category.id).set(category.toMap());
+      dev.log('Category saved to Firebase: ${category.name}', name: 'FirebaseService');
     } catch (e) {
       dev.log('Error saving category to Firestore: $e', name: 'FirebaseService');
     }
@@ -94,16 +122,35 @@ class FirebaseService {
     if (!isAvailable) return;
     try {
       await _categoriesCol!.doc(id).delete();
+      dev.log('Category deleted from Firebase: $id', name: 'FirebaseService');
     } catch (e) {
       dev.log('Error deleting category from Firestore: $e', name: 'FirebaseService');
     }
   }
 
   // Products
+  Future<List<ProductModel>> getProducts() async {
+    if (!isAvailable) return [];
+    try {
+      final snapshot = await _productsCol!.get();
+      return snapshot.docs
+          .map((doc) => ProductModel.fromMap(
+              Map<String, dynamic>.from(doc.data() as Map), doc.id))
+          .toList();
+    } catch (e) {
+      dev.log('Error fetching products from Firestore: $e', name: 'FirebaseService');
+      return [];
+    }
+  }
+
   Future<void> saveProduct(ProductModel product) async {
-    if (!isAvailable) return;
+    if (!isAvailable) {
+      dev.log('Firebase not available when saving product', name: 'FirebaseService');
+      return;
+    }
     try {
       await _productsCol!.doc(product.id).set(product.toMap());
+      dev.log('Product saved to Firebase: ${product.name}', name: 'FirebaseService');
     } catch (e) {
       dev.log('Error saving product to Firestore: $e', name: 'FirebaseService');
     }
@@ -113,67 +160,157 @@ class FirebaseService {
     if (!isAvailable) return;
     try {
       await _productsCol!.doc(id).delete();
+      dev.log('Product deleted from Firebase: $id', name: 'FirebaseService');
     } catch (e) {
       dev.log('Error deleting product from Firestore: $e', name: 'FirebaseService');
     }
   }
 
-  // Inventory
-  Future<void> saveInventoryItem(InventoryItem item) async {
-    if (!isAvailable) return;
-    try {
-      await _inventoryCol!.doc(item.id).set(item.toMap());
-    } catch (e) {
-      dev.log('Error saving inventory to Firestore: $e', name: 'FirebaseService');
-    }
-  }
-
-  Future<void> deleteInventoryItem(String id) async {
-    if (!isAvailable) return;
-    try {
-      await _inventoryCol!.doc(id).delete();
-    } catch (e) {
-      dev.log('Error deleting inventory from Firestore: $e', name: 'FirebaseService');
-    }
-  }
-
   // Orders
+  Future<List<OrderModel>> getOrders() async {
+    if (!isAvailable) return [];
+    try {
+      final snapshot = await _ordersCol!.get();
+      return snapshot.docs
+          .map((doc) => OrderModel.fromMap(
+              Map<String, dynamic>.from(doc.data() as Map), doc.id))
+          .toList();
+    } catch (e) {
+      dev.log('Error fetching orders from Firestore: $e', name: 'FirebaseService');
+      return [];
+    }
+  }
+
   Future<void> saveOrder(OrderModel order) async {
-    if (!isAvailable) return;
+    if (!isAvailable) {
+      dev.log('Firebase not available when saving order', name: 'FirebaseService');
+      return;
+    }
     try {
       await _ordersCol!.doc(order.id).set(order.toMap());
+      dev.log('Order saved to Firebase: ${order.orderNumber}', name: 'FirebaseService');
     } catch (e) {
       dev.log('Error saving order to Firestore: $e', name: 'FirebaseService');
     }
   }
 
-  // Bulk sync all local data to Firestore
-  Future<bool> syncAllToFirestore({
-    required List<CategoryModel> categories,
-    required List<ProductModel> products,
-    required List<InventoryItem> inventory,
-    required List<OrderModel> orders,
-  }) async {
-    if (!isAvailable) return false;
+  // Expenses
+  Future<List<ExpenseModel>> getExpenses() async {
+    if (!isAvailable) return [];
     try {
-      final batch = _firestore!.batch();
-      for (final cat in categories) {
-        batch.set(_categoriesCol!.doc(cat.id), cat.toMap());
-      }
-      for (final prod in products) {
-        batch.set(_productsCol!.doc(prod.id), prod.toMap());
-      }
-      for (final inv in inventory) {
-        batch.set(_inventoryCol!.doc(inv.id), inv.toMap());
-      }
-      for (final ord in orders) {
-        batch.set(_ordersCol!.doc(ord.id), ord.toMap());
-      }
-      await batch.commit();
-      return true;
+      final snapshot = await _expensesCol!.get();
+      return snapshot.docs
+          .map((doc) => ExpenseModel.fromMap(
+              Map<String, dynamic>.from(doc.data() as Map), doc.id))
+          .toList();
     } catch (e) {
-      dev.log('Batch sync failed: $e', name: 'FirebaseService');
-      return false;
+      dev.log('Error fetching expenses from Firestore: $e', name: 'FirebaseService');
+      return [];
     }
+  }
+
+  Future<void> saveExpense(ExpenseModel expense) async {
+    if (!isAvailable) {
+      dev.log('Firebase not available when saving expense', name: 'FirebaseService');
+      return;
+    }
+    try {
+      await _expensesCol!.doc(expense.id).set(expense.toMap());
+      dev.log('Expense saved to Firebase: ${expense.note}', name: 'FirebaseService');
+    } catch (e) {
+      dev.log('Error saving expense to Firestore: $e', name: 'FirebaseService');
+    }
+  }
+
+  Future<void> deleteExpense(String id) async {
+    if (!isAvailable) return;
+    try {
+      await _expensesCol!.doc(id).delete();
+      dev.log('Expense deleted from Firebase: $id', name: 'FirebaseService');
+    } catch (e) {
+      dev.log('Error deleting expense from Firestore: $e', name: 'FirebaseService');
+    }
+  }
+
+  Future<void> deleteOrder(String id) async {
+    if (!isAvailable) return;
+    try {
+      await _ordersCol!.doc(id).delete();
+      dev.log('Order deleted from Firebase: $id', name: 'FirebaseService');
+    } catch (e) {
+      dev.log('Error deleting order from Firestore: $e', name: 'FirebaseService');
+    }
+  }
+
+  // ---------------- REALTIME STREAMS ---------------- //
+
+  Stream<List<CategoryModel>> categoriesStream() async* {
+    if (!isAvailable && _isInitStarted && !_initCompleter.isCompleted) {
+      await ensureInitialized().timeout(const Duration(seconds: 3), onTimeout: () {});
+    }
+    if (!isAvailable || _categoriesCol == null) {
+      yield [];
+      return;
+    }
+    yield* _categoriesCol!.snapshots().map((snapshot) {
+      final list = snapshot.docs
+          .map((doc) => CategoryModel.fromMap(
+              Map<String, dynamic>.from(doc.data() as Map), doc.id))
+          .toList();
+      list.sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
+      return list;
+    });
+  }
+
+  Stream<List<ProductModel>> productsStream() async* {
+    if (!isAvailable && _isInitStarted && !_initCompleter.isCompleted) {
+      await ensureInitialized().timeout(const Duration(seconds: 3), onTimeout: () {});
+    }
+    if (!isAvailable || _productsCol == null) {
+      yield [];
+      return;
+    }
+    yield* _productsCol!.snapshots().map((snapshot) {
+      return snapshot.docs
+          .map((doc) => ProductModel.fromMap(
+              Map<String, dynamic>.from(doc.data() as Map), doc.id))
+          .toList();
+    });
+  }
+
+  Stream<List<OrderModel>> ordersStream() async* {
+    if (!isAvailable && _isInitStarted && !_initCompleter.isCompleted) {
+      await ensureInitialized().timeout(const Duration(seconds: 3), onTimeout: () {});
+    }
+    if (!isAvailable || _ordersCol == null) {
+      yield [];
+      return;
+    }
+    yield* _ordersCol!.snapshots().map((snapshot) {
+      final list = snapshot.docs
+          .map((doc) => OrderModel.fromMap(
+              Map<String, dynamic>.from(doc.data() as Map), doc.id))
+          .toList();
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return list;
+    });
+  }
+
+  Stream<List<ExpenseModel>> expensesStream() async* {
+    if (!isAvailable && _isInitStarted && !_initCompleter.isCompleted) {
+      await ensureInitialized().timeout(const Duration(seconds: 3), onTimeout: () {});
+    }
+    if (!isAvailable || _expensesCol == null) {
+      yield [];
+      return;
+    }
+    yield* _expensesCol!.snapshots().map((snapshot) {
+      final list = snapshot.docs
+          .map((doc) => ExpenseModel.fromMap(
+              Map<String, dynamic>.from(doc.data() as Map), doc.id))
+          .toList();
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return list;
+    });
   }
 }

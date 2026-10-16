@@ -170,13 +170,15 @@ class OrderModel {
   final List<OrderItem> items;
   final double subtotal;
   final double discount;
+  final double extraCharges;
+  final String? extraChargesNote;
   final double totalAmount;
   final double totalCost;
   final double estimatedProfit;
   final String? customerName;
   final String? customerPhone;
   final String? tableOrAddress;
-  final String status; // Completed, Pending, Cancelled
+  final String status; // Pending, Completed, Cancelled
   final String paymentMethod; // Cash, Card, Online
 
   const OrderModel({
@@ -187,13 +189,15 @@ class OrderModel {
     required this.items,
     required this.subtotal,
     required this.discount,
+    this.extraCharges = 0.0,
+    this.extraChargesNote,
     required this.totalAmount,
     required this.totalCost,
     required this.estimatedProfit,
     this.customerName,
     this.customerPhone,
     this.tableOrAddress,
-    this.status = 'Completed',
+    this.status = 'Pending',
     this.paymentMethod = 'Cash',
   });
 
@@ -208,6 +212,8 @@ class OrderModel {
       'items': items.map((i) => i.toMap()).toList(),
       'subtotal': subtotal,
       'discount': discount,
+      'extraCharges': extraCharges,
+      'extraChargesNote': extraChargesNote,
       'totalAmount': totalAmount,
       'totalCost': totalCost,
       'estimatedProfit': estimatedProfit,
@@ -227,7 +233,8 @@ class OrderModel {
 
     final double subtotal = (map['subtotal'] as num?)?.toDouble() ?? 0.0;
     final double discount = (map['discount'] as num?)?.toDouble() ?? 0.0;
-    final double totalAmount = (map['totalAmount'] as num?)?.toDouble() ?? (subtotal - discount);
+    final double extraCharges = (map['extraCharges'] as num?)?.toDouble() ?? 0.0;
+    final double totalAmount = (map['totalAmount'] as num?)?.toDouble() ?? (subtotal - discount + extraCharges);
     final double calculatedCost =
         itemsList.fold<double>(0.0, (sum, item) => sum + item.totalCost);
     final double totalCost =
@@ -245,14 +252,56 @@ class OrderModel {
       items: itemsList,
       subtotal: subtotal,
       discount: discount,
+      extraCharges: extraCharges,
+      extraChargesNote: map['extraChargesNote'],
       totalAmount: totalAmount,
       totalCost: totalCost,
       estimatedProfit: estimatedProfit,
       customerName: map['customerName'],
       customerPhone: map['customerPhone'],
       tableOrAddress: map['tableOrAddress'],
-      status: map['status'] ?? 'Completed',
+      status: map['status'] ?? 'Pending',
       paymentMethod: map['paymentMethod'] ?? 'Cash',
+    );
+  }
+
+  OrderModel copyWith({
+    String? id,
+    String? orderNumber,
+    DateTime? createdAt,
+    OrderType? orderType,
+    List<OrderItem>? items,
+    double? subtotal,
+    double? discount,
+    double? extraCharges,
+    String? extraChargesNote,
+    double? totalAmount,
+    double? totalCost,
+    double? estimatedProfit,
+    String? customerName,
+    String? customerPhone,
+    String? tableOrAddress,
+    String? status,
+    String? paymentMethod,
+  }) {
+    return OrderModel(
+      id: id ?? this.id,
+      orderNumber: orderNumber ?? this.orderNumber,
+      createdAt: createdAt ?? this.createdAt,
+      orderType: orderType ?? this.orderType,
+      items: items ?? this.items,
+      subtotal: subtotal ?? this.subtotal,
+      discount: discount ?? this.discount,
+      extraCharges: extraCharges ?? this.extraCharges,
+      extraChargesNote: extraChargesNote ?? this.extraChargesNote,
+      totalAmount: totalAmount ?? this.totalAmount,
+      totalCost: totalCost ?? this.totalCost,
+      estimatedProfit: estimatedProfit ?? this.estimatedProfit,
+      customerName: customerName ?? this.customerName,
+      customerPhone: customerPhone ?? this.customerPhone,
+      tableOrAddress: tableOrAddress ?? this.tableOrAddress,
+      status: status ?? this.status,
+      paymentMethod: paymentMethod ?? this.paymentMethod,
     );
   }
 }

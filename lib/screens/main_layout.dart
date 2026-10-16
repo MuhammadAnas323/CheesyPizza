@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/theme/app_colors.dart';
-import '../providers/inventory_provider.dart';
 import '../providers/repository_providers.dart';
 import 'dashboard/dashboard_screen.dart';
-import 'pos/pos_screen.dart';
 import 'menu/menu_management_screen.dart';
 import 'orders/orders_history_screen.dart';
-import 'inventory/inventory_screen.dart';
+import 'expenses/expenses_screen.dart';
 import 'reports/sales_reports_screen.dart';
 
 class MainLayout extends ConsumerStatefulWidget {
@@ -26,19 +24,14 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
 
   @override
   Widget build(BuildContext context) {
-    final lowStockCount = ref.watch(lowStockCountProvider);
     final firebaseService = ref.watch(firebaseServiceProvider);
     final isDesktop = MediaQuery.of(context).size.width >= 850;
 
     final screens = [
-      DashboardScreen(
-        onNavigateToPos: () => _navigateToIndex(1),
-        onNavigateToInventory: () => _navigateToIndex(4),
-      ),
-      const PosScreen(),
+      const DashboardScreen(),
       const MenuManagementScreen(),
       const OrdersHistoryScreen(),
-      const InventoryScreen(),
+      const ExpensesScreen(),
       const SalesReportsScreen(),
     ];
 
@@ -87,46 +80,9 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
           ],
         ),
         actions: [
-          // Low stock alert indicator
-          if (lowStockCount > 0)
-            Padding(
-              padding: const EdgeInsets.only(right: 4),
-              child: Tooltip(
-                message: '$lowStockCount items low on stock',
-                child: isDesktop
-                    ? TextButton.icon(
-                        style: TextButton.styleFrom(
-                          backgroundColor: AppColors.warning,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 6),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20)),
-                        ),
-                        icon: const Icon(Icons.warning, size: 16),
-                        label: Text(
-                          '$lowStockCount Low Stock',
-                          style: const TextStyle(
-                              fontSize: 12, fontWeight: FontWeight.bold),
-                        ),
-                        onPressed: () => _navigateToIndex(4),
-                      )
-                    : IconButton(
-                        icon: Badge(
-                          label: Text('$lowStockCount'),
-                          backgroundColor: AppColors.cheeseYellow,
-                          textColor: AppColors.textDark,
-                          child: const Icon(Icons.warning_amber_rounded,
-                              color: AppColors.cheeseYellow, size: 22),
-                        ),
-                        onPressed: () => _navigateToIndex(4),
-                      ),
-              ),
-            ),
-
           // Firebase connection status badge / icon
           Padding(
-            padding: EdgeInsets.only(right: isDesktop ? 12 : 6),
+            padding: EdgeInsets.only(right: isDesktop ? 16 : 8),
             child: Tooltip(
               message: firebaseService.isAvailable
                   ? 'Connected to Cloud Firestore'
@@ -167,33 +123,11 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
                     ),
             ),
           ),
-
-          // POS shortcut button (Desktop only, mobile has bottom bar)
-          if (isDesktop && _currentIndex != 1)
-            Padding(
-              padding: const EdgeInsets.only(right: 16),
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.cheeseYellow,
-                  foregroundColor: AppColors.textDark,
-                  elevation: 0,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                ),
-                icon: const Icon(Icons.point_of_sale, size: 18),
-                label: const Text(
-                  'Take Order',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                ),
-                onPressed: () => _navigateToIndex(1),
-              ),
-            ),
         ],
       ),
       body: isDesktop
           ? Row(
               children: [
-                // Desktop Navigation Rail / Sidebar
                 NavigationRail(
                   selectedIndex: _currentIndex,
                   onDestinationSelected: _navigateToIndex,
@@ -219,11 +153,6 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
                       label: Text('Dashboard'),
                     ),
                     NavigationRailDestination(
-                      icon: Icon(Icons.point_of_sale_outlined),
-                      selectedIcon: Icon(Icons.point_of_sale),
-                      label: Text('POS Order'),
-                    ),
-                    NavigationRailDestination(
                       icon: Icon(Icons.restaurant_menu_outlined),
                       selectedIcon: Icon(Icons.restaurant_menu),
                       label: Text('Menu'),
@@ -234,9 +163,9 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
                       label: Text('Orders'),
                     ),
                     NavigationRailDestination(
-                      icon: Icon(Icons.inventory_2_outlined),
-                      selectedIcon: Icon(Icons.inventory_2),
-                      label: Text('Inventory'),
+                      icon: Icon(Icons.payments_outlined),
+                      selectedIcon: Icon(Icons.payments),
+                      label: Text('Expenses'),
                     ),
                     NavigationRailDestination(
                       icon: Icon(Icons.bar_chart_outlined),
@@ -266,10 +195,6 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
                   label: 'Dashboard',
                 ),
                 BottomNavigationBarItem(
-                  icon: Icon(Icons.point_of_sale),
-                  label: 'POS',
-                ),
-                BottomNavigationBarItem(
                   icon: Icon(Icons.restaurant_menu),
                   label: 'Menu',
                 ),
@@ -278,8 +203,8 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
                   label: 'Orders',
                 ),
                 BottomNavigationBarItem(
-                  icon: Icon(Icons.inventory_2),
-                  label: 'Inventory',
+                  icon: Icon(Icons.payments),
+                  label: 'Expenses',
                 ),
                 BottomNavigationBarItem(
                   icon: Icon(Icons.bar_chart),

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/product_model.dart';
 import '../repositories/cafe_repository.dart';
@@ -6,29 +7,45 @@ import 'category_provider.dart';
 
 class ProductNotifier extends StateNotifier<AsyncValue<List<ProductModel>>> {
   final CafeRepository _repository;
+  StreamSubscription<List<ProductModel>>? _subscription;
 
   ProductNotifier(this._repository) : super(const AsyncValue.loading()) {
-    loadProducts();
+    _initStream();
   }
 
-  Future<void> loadProducts() async {
+  void _initStream() {
+    _subscription?.cancel();
+    _subscription = _repository.productsStream().listen(
+      (products) {
+        state = AsyncValue.data(products);
+      },
+      onError: (err, st) {
+        loadProducts();
+      },
+    );
+    loadProducts(isInitial: true);
+  }
+
+  Future<void> loadProducts({bool isInitial = false}) async {
     try {
-      state = const AsyncValue.loading();
+      if (isInitial && state is! AsyncData) {
+        state = const AsyncValue.loading();
+      }
       final list = await _repository.getProducts();
       state = AsyncValue.data(list);
     } catch (e, st) {
-      state = AsyncValue.error(e, st);
+      if (isInitial && state is! AsyncData) {
+        state = AsyncValue.error(e, st);
+      }
     }
   }
 
   Future<void> saveProduct(ProductModel product) async {
     await _repository.saveProduct(product);
-    await loadProducts();
   }
 
   Future<void> deleteProduct(String id) async {
     await _repository.deleteProduct(id);
-    await loadProducts();
   }
 
   Future<void> toggleAvailability(String id) async {
@@ -40,6 +57,12 @@ class ProductNotifier extends StateNotifier<AsyncValue<List<ProductModel>>> {
         await saveProduct(updated);
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
   }
 }
 

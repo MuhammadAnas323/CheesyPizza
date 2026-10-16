@@ -77,28 +77,26 @@ class PrinterService {
                 ),
                 if (order.customerName != null && order.customerName!.isNotEmpty) ...[
                   pw.SizedBox(height: 2),
-                  pw.Row(
-                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                    children: [
-                      pw.Text('Customer: ${order.customerName}',
-                          style: const pw.TextStyle(fontSize: 8)),
-                      if (order.customerPhone != null)
-                        pw.Text(order.customerPhone!,
-                            style: const pw.TextStyle(fontSize: 8)),
-                    ],
+                  pw.Align(
+                    alignment: pw.Alignment.centerLeft,
+                    child: pw.Text('Customer: ${order.customerName}',
+                        style: const pw.TextStyle(fontSize: 8)),
+                  ),
+                ],
+                if (order.customerPhone != null && order.customerPhone!.isNotEmpty) ...[
+                  pw.SizedBox(height: 1),
+                  pw.Align(
+                    alignment: pw.Alignment.centerLeft,
+                    child: pw.Text('Phone: ${order.customerPhone}',
+                        style: const pw.TextStyle(fontSize: 8)),
                   ),
                 ],
                 if (order.tableOrAddress != null && order.tableOrAddress!.isNotEmpty) ...[
-                  pw.SizedBox(height: 2),
+                  pw.SizedBox(height: 1),
                   pw.Align(
                     alignment: pw.Alignment.centerLeft,
-                    child: pw.Text(
-                      order.orderType == OrderType.dineIn
-                          ? 'Table: ${order.tableOrAddress}'
-                          : 'Address: ${order.tableOrAddress}',
-                      style: pw.TextStyle(
-                          fontSize: 8, fontWeight: pw.FontWeight.bold),
-                    ),
+                    child: pw.Text('Address/Table: ${order.tableOrAddress}',
+                        style: const pw.TextStyle(fontSize: 8)),
                   ),
                 ],
 
@@ -219,10 +217,17 @@ class PrinterService {
                 pw.SizedBox(height: 4),
 
                 // Calculations
-                _buildSummaryRow('Subtotal:', CurrencyFormatter.format(order.subtotal)),
+                _buildSummaryRow('Subtotal:', CurrencyFormatter.format(order.subtotal).replaceAll('Rs. ', '')),
                 if (order.discount > 0)
                   _buildSummaryRow(
-                      'Discount:', '- ${CurrencyFormatter.format(order.discount)}'),
+                      'Discount:', '- ${CurrencyFormatter.format(order.discount).replaceAll('Rs. ', '')}'),
+                if (order.extraCharges > 0)
+                  _buildSummaryRow(
+                    order.extraChargesNote != null && order.extraChargesNote!.trim().isNotEmpty
+                        ? 'Extra Charges (${order.extraChargesNote!.trim()}):'
+                        : 'Extra Charges:',
+                    '+ ${CurrencyFormatter.format(order.extraCharges).replaceAll('Rs. ', '')}',
+                  ),
                 pw.SizedBox(height: 3),
                 _buildSolidDivider(),
                 pw.SizedBox(height: 4),
@@ -346,14 +351,41 @@ class PrinterService {
                   'Time: ${DateFormatter.formatTime(order.createdAt)}  (${DateFormatter.formatShort(order.createdAt)})',
                   style: const pw.TextStyle(fontSize: 9),
                 ),
+                if (order.customerName != null && order.customerName!.isNotEmpty) ...[
+                  pw.SizedBox(height: 2),
+                  pw.Text('Customer: ${order.customerName}${order.customerPhone != null && order.customerPhone!.isNotEmpty ? ' (${order.customerPhone})' : ''}',
+                      style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold)),
+                ],
                 if (order.tableOrAddress != null && order.tableOrAddress!.isNotEmpty) ...[
                   pw.SizedBox(height: 2),
-                  pw.Text(
-                    order.orderType == OrderType.dineIn
-                        ? 'TABLE: ${order.tableOrAddress}'
-                        : 'DESTINATION: ${order.tableOrAddress}',
-                    style: pw.TextStyle(
-                        fontSize: 10, fontWeight: pw.FontWeight.bold),
+                  pw.Text('Address/Table: ${order.tableOrAddress}',
+                      style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold)),
+                ],
+                if (order.extraCharges > 0 || (order.extraChargesNote != null && order.extraChargesNote!.trim().isNotEmpty)) ...[
+                  pw.SizedBox(height: 4),
+                  pw.Container(
+                    padding: const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 3),
+                    decoration: pw.BoxDecoration(
+                      border: pw.Border.all(color: PdfColors.black, width: 0.8),
+                    ),
+                    child: pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                      children: [
+                        pw.Expanded(
+                          child: pw.Text(
+                            order.extraChargesNote != null && order.extraChargesNote!.trim().isNotEmpty
+                                ? 'EXTRA / NOTE: ${order.extraChargesNote!.trim()}'
+                                : 'EXTRA CHARGES APPLIED',
+                            style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
+                          ),
+                        ),
+                        if (order.extraCharges > 0)
+                          pw.Text(
+                            CurrencyFormatter.format(order.extraCharges),
+                            style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
+                          ),
+                      ],
+                    ),
                   ),
                 ],
 
@@ -553,9 +585,9 @@ class PrinterService {
                     backgroundColor: Color(0xFFC62828),
                     child: Icon(Icons.receipt_long, color: Colors.white),
                   ),
-                  title: const Text('Customer Thermal Receipt',
+                  title: const Text('Customer Slip',
                       style: TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: const Text('Prints cafe bill with items, prices & totals'),
+                  subtitle: const Text('Prints customer bill receipt'),
                   trailing: ElevatedButton.icon(
                     icon: const Icon(Icons.print, size: 16),
                     label: const Text('Print'),
@@ -571,9 +603,9 @@ class PrinterService {
                     backgroundColor: Color(0xFFFFA000),
                     child: Icon(Icons.restaurant, color: Colors.white),
                   ),
-                  title: const Text('Kitchen Slip (KOT)',
+                  title: const Text('Kitchen Slip',
                       style: TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: const Text('Prints order items & quantities for kitchen prep'),
+                  subtitle: const Text('Prints kitchen preparation ticket'),
                   trailing: ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF212529),

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../providers/app_initialization_provider.dart';
-import '../welcome/welcome_screen.dart';
+import '../main_layout.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -25,20 +25,19 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   void initState() {
     super.initState();
 
-    // 1. Setup smooth rotation and entrance animation
+    // 3 seconds duration for splash screen
     _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2400),
+      duration: const Duration(seconds: 3),
     );
 
-    // Smooth rotation that decelerates gracefully and stops completely
     _rotationAnimation = Tween<double>(
       begin: 0.0,
-      end: 2.0, // Exactly 2 complete rotations, then stops
+      end: 2.0, // Exactly 2 complete rotations, stopping when finished
     ).animate(
       CurvedAnimation(
         parent: _animationController,
-        curve: Curves.easeInOutCubicEmphasized,
+        curve: const Interval(0.0, 0.8, curve: Curves.easeInOutCubicEmphasized),
       ),
     );
 
@@ -52,22 +51,21 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       ),
     );
 
+    // Fade-in animation for welcome text when photo stops rotating
     _fadeAnimation = Tween<double>(
       begin: 0.0,
       end: 1.0,
     ).animate(
       CurvedAnimation(
         parent: _animationController,
-        curve: const Interval(0.0, 0.4, curve: Curves.easeIn),
+        curve: const Interval(0.6, 1.0, curve: Curves.easeIn),
       ),
     );
 
-    // 2. Trigger asynchronous background initialization via Riverpod
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(appInitializationProvider.notifier).initialize();
     });
 
-    // 3. Start animation and auto-navigate upon completion
     _animationController.forward().whenComplete(() {
       _checkAndNavigate();
     });
@@ -81,7 +79,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 600),
         pageBuilder: (context, animation, secondaryAnimation) =>
-            const WelcomeScreen(),
+            const MainLayout(),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(opacity: animation, child: child);
         },
@@ -97,7 +95,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
-    // Watch initialization state
     ref.listen<AsyncValue<AppInitializationState>>(
       appInitializationProvider,
       (previous, next) {
@@ -108,7 +105,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     );
 
     final size = MediaQuery.of(context).size;
-    final imageSize = math.min(size.width * 0.45, 180.0);
+    final imageSize = math.min(size.width * 0.48, 190.0);
 
     return Scaffold(
       body: Container(
@@ -119,8 +116,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFF1E2124), // Dark charcoal
-              Color(0xFF2B1B17), // Rich dark reddish charcoal
+              Color(0xFF1E2124),
+              Color(0xFF2B1B17),
               Color(0xFF141618),
             ],
           ),
@@ -128,121 +125,101 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // Animated rotating and scaling logo image
-                    AnimatedBuilder(
-                      animation: _animationController,
-                      builder: (context, child) {
-                        return Transform.scale(
-                          scale: _scaleAnimation.value,
-                          child: Transform.rotate(
-                            angle: _rotationAnimation.value * 2 * math.pi,
-                            child: child,
-                          ),
-                        );
-                      },
-                      child: Container(
-                        width: imageSize,
-                        height: imageSize,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primaryRed.withAlpha(120),
-                              blurRadius: 28,
-                              spreadRadius: 4,
-                              offset: const Offset(0, 6),
-                            ),
-                            BoxShadow(
-                              color: AppColors.cheeseYellow.withAlpha(90),
-                              blurRadius: 18,
-                              spreadRadius: 2,
-                            ),
-                          ],
-                          border: Border.all(
-                            color: AppColors.cheeseYellow,
-                            width: 3.5,
-                          ),
+              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // Animated rotating and scaling photo
+                  AnimatedBuilder(
+                    animation: _animationController,
+                    builder: (context, child) {
+                      return Transform.scale(
+                        scale: _scaleAnimation.value,
+                        child: Transform.rotate(
+                          angle: _rotationAnimation.value * 2 * math.pi,
+                          child: child,
                         ),
-                        child: ClipOval(
-                          child: Image.asset(
-                            'assets/photo.jpeg',
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                color: AppColors.primaryRed,
-                                child: const Icon(
-                                  Icons.local_pizza,
-                                  size: 60,
-                                  color: Colors.white,
-                                ),
-                              );
-                            },
+                      );
+                    },
+                    child: Container(
+                      width: imageSize,
+                      height: imageSize,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primaryRed.withAlpha(120),
+                            blurRadius: 28,
+                            spreadRadius: 4,
+                            offset: const Offset(0, 6),
                           ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-
-                    // App Title & Tagline with fade-in
-                    FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: const [
-                              Icon(
-                                Icons.local_pizza,
-                                color: AppColors.cheeseYellow,
-                                size: 26,
-                              ),
-                              SizedBox(width: 8),
-                              Text(
-                                'CHEESY PIZZA',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 26,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: 1.8,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Hot, Fresh & Cheesy Fast Food Cafe',
-                            style: TextStyle(
-                              color: Colors.white.withAlpha(200),
-                              fontSize: 13,
-                              letterSpacing: 0.6,
-                              fontWeight: FontWeight.w400,
-                            ),
-                          ),
-                          const SizedBox(height: 36),
-
-                          // Elegant loading indicator
-                          SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2.5,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                AppColors.cheeseYellow,
-                              ),
-                            ),
+                          BoxShadow(
+                            color: AppColors.cheeseYellow.withAlpha(90),
+                            blurRadius: 18,
+                            spreadRadius: 2,
                           ),
                         ],
+                        border: Border.all(
+                          color: AppColors.cheeseYellow,
+                          width: 3.5,
+                        ),
+                      ),
+                      child: ClipOval(
+                        child: Image.asset(
+                          'assets/photo.jpeg',
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              color: AppColors.primaryRed,
+                              child: const Icon(
+                                Icons.local_pizza,
+                                size: 60,
+                                color: Colors.white,
+                              ),
+                            );
+                          },
+                        ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 36),
+
+                  // Welcome text below photo appearing when rotation stops
+                  FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: Column(
+                      children: [
+                        const Icon(
+                          Icons.local_pizza,
+                          color: AppColors.cheeseYellow,
+                          size: 28,
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'Welcome to Aman Khan in Cheesy Pizza',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.5,
+                            height: 1.3,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Fast Food Cafe Management & POS',
+                          style: TextStyle(
+                            color: Colors.white.withAlpha(180),
+                            fontSize: 13,
+                            letterSpacing: 0.6,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           ),

@@ -13,74 +13,27 @@ enum ReportTimePeriod {
   const ReportTimePeriod(this.label);
 }
 
-class CategoryMetric {
-  final String categoryName;
-  int quantity;
-  double revenue;
-  double cost;
-
-  CategoryMetric({
-    required this.categoryName,
-    this.quantity = 0,
-    this.revenue = 0.0,
-    this.cost = 0.0,
-  });
-
-  double get profit => revenue - cost;
-}
-
 class ProductMetric {
-  final String productId;
   final String productName;
-  final String categoryName;
   int quantity;
   double revenue;
-  double cost;
 
   ProductMetric({
-    required this.productId,
     required this.productName,
-    required this.categoryName,
     this.quantity = 0,
     this.revenue = 0.0,
-    this.cost = 0.0,
   });
-
-  double get profit => revenue - cost;
 }
 
 class SalesReportData {
   final double totalRevenue;
-  final double totalCost;
-  final double estimatedProfit;
   final int totalOrdersCount;
-  final int totalItemsSold;
-
-  // Specific fast food categories
-  final int pizzaSoldCount;
-  final int burgersSoldCount;
-  final int dealsSoldCount;
-  final int friesSoldCount;
-  final int drinksSoldCount;
-  final int othersSoldCount;
-
-  final Map<String, CategoryMetric> categoryMetrics;
   final List<ProductMetric> productMetrics;
   final List<OrderModel> orders;
 
   const SalesReportData({
     this.totalRevenue = 0.0,
-    this.totalCost = 0.0,
-    this.estimatedProfit = 0.0,
     this.totalOrdersCount = 0,
-    this.totalItemsSold = 0,
-    this.pizzaSoldCount = 0,
-    this.burgersSoldCount = 0,
-    this.dealsSoldCount = 0,
-    this.friesSoldCount = 0,
-    this.drinksSoldCount = 0,
-    this.othersSoldCount = 0,
-    this.categoryMetrics = const {},
     this.productMetrics = const [],
     this.orders = const [],
   });
@@ -96,67 +49,22 @@ final customDateRangeProvider = StateProvider<DateTimeRange>((ref) {
 });
 
 SalesReportData _calculateReportForOrders(List<OrderModel> orders) {
+  // STRICT RULE: Only completed orders count towards completed sales totals and reports
+  final completedOrders = orders.where((o) => o.status.toLowerCase() == 'completed').toList();
+
   double totalRevenue = 0.0;
-  double totalCost = 0.0;
-  double totalProfit = 0.0;
-  int totalItemsSold = 0;
-
-  int pizzaSold = 0;
-  int burgersSold = 0;
-  int dealsSold = 0;
-  int friesSold = 0;
-  int drinksSold = 0;
-  int othersSold = 0;
-
-  final Map<String, CategoryMetric> catMap = {};
   final Map<String, ProductMetric> prodMap = {};
 
-  for (final order in orders) {
-    if (order.status.toLowerCase() == 'cancelled') continue;
-
+  for (final order in completedOrders) {
     totalRevenue += order.totalAmount;
-    totalCost += order.totalCost;
-    totalProfit += order.estimatedProfit;
 
     for (final item in order.items) {
-      totalItemsSold += item.quantity;
-      final catName = item.categoryName.isNotEmpty ? item.categoryName : 'Others';
-      final lowerCat = catName.toLowerCase();
-
-      if (lowerCat.contains('pizza')) {
-        pizzaSold += item.quantity;
-      } else if (lowerCat.contains('burger')) {
-        burgersSold += item.quantity;
-      } else if (lowerCat.contains('deal')) {
-        dealsSold += item.quantity;
-      } else if (lowerCat.contains('frie')) {
-        friesSold += item.quantity;
-      } else if (lowerCat.contains('drink') || lowerCat.contains('beverage')) {
-        drinksSold += item.quantity;
-      } else {
-        othersSold += item.quantity;
-      }
-
-      // Category map
-      if (!catMap.containsKey(catName)) {
-        catMap[catName] = CategoryMetric(categoryName: catName);
-      }
-      catMap[catName]!.quantity += item.quantity;
-      catMap[catName]!.revenue += item.totalPrice;
-      catMap[catName]!.cost += item.totalCost;
-
-      // Product map
-      final pKey = item.productId.isNotEmpty ? item.productId : item.productName;
+      final pKey = item.displayName;
       if (!prodMap.containsKey(pKey)) {
-        prodMap[pKey] = ProductMetric(
-          productId: item.productId,
-          productName: item.productName,
-          categoryName: catName,
-        );
+        prodMap[pKey] = ProductMetric(productName: pKey);
       }
       prodMap[pKey]!.quantity += item.quantity;
       prodMap[pKey]!.revenue += item.totalPrice;
-      prodMap[pKey]!.cost += item.totalCost;
     }
   }
 
@@ -165,23 +73,12 @@ SalesReportData _calculateReportForOrders(List<OrderModel> orders) {
 
   return SalesReportData(
     totalRevenue: totalRevenue,
-    totalCost: totalCost,
-    estimatedProfit: totalProfit,
-    totalOrdersCount: orders.where((o) => o.status.toLowerCase() != 'cancelled').length,
-    totalItemsSold: totalItemsSold,
-    pizzaSoldCount: pizzaSold,
-    burgersSoldCount: burgersSold,
-    dealsSoldCount: dealsSold,
-    friesSoldCount: friesSold,
-    drinksSoldCount: drinksSold,
-    othersSoldCount: othersSold,
-    categoryMetrics: catMap,
+    totalOrdersCount: completedOrders.length,
     productMetrics: prodList,
-    orders: orders,
+    orders: orders, // Keep all orders in list for history viewing
   );
 }
 
-/// Provider for Today's Dashboard Metrics
 final todayDashboardMetricsProvider = Provider<SalesReportData>((ref) {
   final ordersAsync = ref.watch(orderNotifierProvider);
   return ordersAsync.maybeWhen(
@@ -198,7 +95,7 @@ final todayDashboardMetricsProvider = Provider<SalesReportData>((ref) {
   );
 });
 
-/// Provider for Sales Reports Screen (Driven by period and custom date range)
+/// Dashboard / Reports filtered by period provider
 final filteredSalesReportProvider = Provider<SalesReportData>((ref) {
   final ordersAsync = ref.watch(orderNotifierProvider);
   final period = ref.watch(reportTimePeriodProvider);
@@ -218,13 +115,17 @@ final filteredSalesReportProvider = Provider<SalesReportData>((ref) {
           }).toList();
           break;
         case ReportTimePeriod.thisWeek:
-          // Last 7 days or start of week
-          final weekStart = DateTime(now.year, now.month, now.day).subtract(Duration(days: now.weekday - 1));
-          filtered = allOrders.where((o) => o.createdAt.isAfter(weekStart.subtract(const Duration(seconds: 1)))).toList();
+          final weekStart = DateTime(now.year, now.month, now.day)
+              .subtract(Duration(days: now.weekday - 1));
+          filtered = allOrders
+              .where((o) => o.createdAt.isAfter(weekStart.subtract(const Duration(seconds: 1))))
+              .toList();
           break;
         case ReportTimePeriod.thisMonth:
           final monthStart = DateTime(now.year, now.month, 1);
-          filtered = allOrders.where((o) => o.createdAt.isAfter(monthStart.subtract(const Duration(seconds: 1)))).toList();
+          filtered = allOrders
+              .where((o) => o.createdAt.isAfter(monthStart.subtract(const Duration(seconds: 1))))
+              .toList();
           break;
         case ReportTimePeriod.custom:
           final start = DateTime(

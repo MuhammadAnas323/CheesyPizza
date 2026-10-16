@@ -2,14 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../../../models/product_model.dart';
-import '../../../providers/category_provider.dart';
-import '../../../providers/inventory_provider.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../providers/category_provider.dart';
 
 class ProductFormDialog extends ConsumerStatefulWidget {
+  final String? categoryId;
   final ProductModel? productToEdit;
 
-  const ProductFormDialog({super.key, this.productToEdit});
+  const ProductFormDialog({
+    super.key,
+    this.categoryId,
+    this.productToEdit,
+  });
 
   @override
   ConsumerState<ProductFormDialog> createState() => _ProductFormDialogState();
@@ -20,16 +24,9 @@ class _ProductFormDialogState extends ConsumerState<ProductFormDialog> {
 
   late TextEditingController _nameController;
   late TextEditingController _descController;
-  late TextEditingController _basePriceController;
-  late TextEditingController _baseCostController;
-
-  String? _selectedCategoryId;
-  bool _isAvailable = true;
-  bool _hasSizes = false;
+  String? _selectedCatId;
 
   List<ProductSize> _sizes = [];
-  List<ProductTopping> _toppings = [];
-  List<RecipeIngredient> _recipe = [];
 
   @override
   void initState() {
@@ -37,234 +34,72 @@ class _ProductFormDialogState extends ConsumerState<ProductFormDialog> {
     final p = widget.productToEdit;
     _nameController = TextEditingController(text: p?.name ?? '');
     _descController = TextEditingController(text: p?.description ?? '');
-    _basePriceController = TextEditingController(
-        text: p != null ? p.basePrice.toStringAsFixed(0) : '');
-    _baseCostController = TextEditingController(
-        text: p != null ? p.baseCostPrice.toStringAsFixed(0) : '');
-    _selectedCategoryId = p?.categoryId;
-    _isAvailable = p?.isAvailable ?? true;
-    _hasSizes = p?.hasSizes ?? false;
-    _sizes = p != null ? List.from(p.sizes) : [];
-    _toppings = p != null ? List.from(p.availableToppings) : [];
-    _recipe = p != null ? List.from(p.recipe) : [];
+    _selectedCatId = p?.categoryId ?? widget.categoryId;
+
+    if (p != null) {
+      if (p.hasSizes && p.sizes.isNotEmpty) {
+        _sizes = List.from(p.sizes);
+      } else if (p.basePrice > 0) {
+        _sizes = [ProductSize(name: 'Regular', price: p.basePrice, costPrice: 0)];
+      }
+    }
+    if (_sizes.isEmpty) {
+      _sizes = [ProductSize(name: 'Regular', price: 0, costPrice: 0)];
+    }
   }
 
   @override
   void dispose() {
     _nameController.dispose();
     _descController.dispose();
-    _basePriceController.dispose();
-    _baseCostController.dispose();
     super.dispose();
   }
 
-  void _addSize() {
-    final nameCtrl = TextEditingController(text: 'Large');
-    final priceCtrl = TextEditingController(text: '1500');
-    final costCtrl = TextEditingController(text: '650');
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Add Size'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameCtrl,
-              decoration: const InputDecoration(labelText: 'Size Name (e.g. Small, Medium, Large)'),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: priceCtrl,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Selling Price (PKR)'),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: costCtrl,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Cost Price (PKR)'),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () {
-              final price = double.tryParse(priceCtrl.text) ?? 0.0;
-              final cost = double.tryParse(costCtrl.text) ?? 0.0;
-              if (nameCtrl.text.trim().isNotEmpty && price > 0) {
-                setState(() {
-                  _sizes.add(ProductSize(
-                    name: nameCtrl.text.trim(),
-                    price: price,
-                    costPrice: cost,
-                  ));
-                });
-                Navigator.pop(ctx);
-              }
-            },
-            child: const Text('Add'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _addTopping() {
-    final nameCtrl = TextEditingController(text: 'Extra Mozzarella');
-    final priceCtrl = TextEditingController(text: '150');
-    final costCtrl = TextEditingController(text: '70');
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Add Topping / Add-on'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameCtrl,
-              decoration: const InputDecoration(labelText: 'Topping Name'),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: priceCtrl,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Selling Price (PKR)'),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: costCtrl,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Cost Price (PKR)'),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () {
-              final price = double.tryParse(priceCtrl.text) ?? 0.0;
-              final cost = double.tryParse(costCtrl.text) ?? 0.0;
-              if (nameCtrl.text.trim().isNotEmpty) {
-                setState(() {
-                  _toppings.add(ProductTopping(
-                    name: nameCtrl.text.trim(),
-                    price: price,
-                    costPrice: cost,
-                  ));
-                });
-                Navigator.pop(ctx);
-              }
-            },
-            child: const Text('Add'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _addRecipeIngredient() {
-    final inventoryAsync = ref.read(inventoryNotifierProvider);
-    inventoryAsync.whenData((items) {
-      if (items.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No inventory items found. Add inventory items first.')),
-        );
-        return;
-      }
-
-      String selectedInvId = items.first.id;
-      final qtyCtrl = TextEditingController(text: '0.2');
-
-      showDialog(
-        context: context,
-        builder: (ctx) => StatefulBuilder(
-          builder: (context, setModalState) {
-            final selectedItem = items.firstWhere((i) => i.id == selectedInvId);
-            return AlertDialog(
-              title: const Text('Link Recipe Ingredient'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  DropdownButtonFormField<String>(
-                    initialValue: selectedInvId,
-                    decoration: const InputDecoration(labelText: 'Stock Item'),
-                    items: items.map((inv) {
-                      return DropdownMenuItem(
-                        value: inv.id,
-                        child: Text('${inv.name} (${inv.unit})'),
-                      );
-                    }).toList(),
-                    onChanged: (val) {
-                      if (val != null) {
-                        setModalState(() => selectedInvId = val);
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: qtyCtrl,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      labelText: 'Qty consumed per item (${selectedItem.unit})',
-                    ),
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-                ElevatedButton(
-                  onPressed: () {
-                    final qty = double.tryParse(qtyCtrl.text) ?? 0.0;
-                    if (qty > 0) {
-                      setState(() {
-                        _recipe.add(RecipeIngredient(
-                          inventoryItemId: selectedItem.id,
-                          ingredientName: selectedItem.name,
-                          quantityRequired: qty,
-                          unit: selectedItem.unit,
-                        ));
-                      });
-                      Navigator.pop(ctx);
-                    }
-                  },
-                  child: const Text('Add Ingredient'),
-                ),
-              ],
-            );
-          },
-        ),
-      );
+  void _addSizeRow() {
+    setState(() {
+      _sizes.add(ProductSize(name: 'Large', price: 0, costPrice: 0));
     });
   }
 
   void _saveProduct() {
     if (!_formKey.currentState!.validate()) return;
-    if (_selectedCategoryId == null || _selectedCategoryId!.isEmpty) {
+    
+    // Ensure selected category ID is valid
+    final categories = ref.read(categoryNotifierProvider).asData?.value ?? [];
+    if (_selectedCatId == null || _selectedCatId!.isEmpty) {
+      if (categories.isNotEmpty) {
+        _selectedCatId = categories.first.id;
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please create a category first')),
+        );
+        return;
+      }
+    }
+
+    if (_sizes.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a category')),
+        const SnackBar(content: Text('Please add at least one size and price')),
       );
       return;
     }
 
-    final basePrice = double.tryParse(_basePriceController.text) ?? 0.0;
-    final baseCost = double.tryParse(_baseCostController.text) ?? 0.0;
+    final name = _nameController.text.trim();
+    final description = _descController.text.trim();
+    final basePrice = _sizes.first.price;
 
     final product = ProductModel(
       id: widget.productToEdit?.id ?? const Uuid().v4(),
-      name: _nameController.text.trim(),
-      categoryId: _selectedCategoryId!,
-      description: _descController.text.trim(),
+      name: name,
+      categoryId: _selectedCatId!,
+      description: description,
       basePrice: basePrice,
-      baseCostPrice: baseCost,
-      isAvailable: _isAvailable,
-      hasSizes: _hasSizes,
-      sizes: _hasSizes ? _sizes : [],
-      availableToppings: _toppings,
-      recipe: _recipe,
+      baseCostPrice: 0.0,
+      isAvailable: true,
+      hasSizes: true,
+      sizes: _sizes,
+      availableToppings: [],
+      recipe: [],
     );
 
     Navigator.pop(context, product);
@@ -276,8 +111,9 @@ class _ProductFormDialogState extends ConsumerState<ProductFormDialog> {
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      insetPadding: const EdgeInsets.all(16),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 620, maxHeight: 720),
+        constraints: const BoxConstraints(maxWidth: 550, maxHeight: 700),
         child: Column(
           children: [
             // Header
@@ -292,9 +128,7 @@ class _ProductFormDialogState extends ConsumerState<ProductFormDialog> {
                   const Icon(Icons.restaurant_menu, color: Colors.white),
                   const SizedBox(width: 10),
                   Text(
-                    widget.productToEdit == null
-                        ? 'Add New Product'
-                        : 'Edit Product',
+                    widget.productToEdit == null ? 'Add New Item' : 'Edit Item',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 18,
@@ -310,7 +144,7 @@ class _ProductFormDialogState extends ConsumerState<ProductFormDialog> {
               ),
             ),
 
-            // Form
+            // Form Content
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(20),
@@ -319,28 +153,20 @@ class _ProductFormDialogState extends ConsumerState<ProductFormDialog> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Product Name
-                      TextFormField(
-                        controller: _nameController,
-                        decoration: const InputDecoration(
-                          labelText: 'Product Name *',
-                          hintText: 'e.g. Chicken Fajita Pizza, Zinger Burger',
-                        ),
-                        validator: (val) => val == null || val.trim().isEmpty
-                            ? 'Please enter product name'
-                            : null,
-                      ),
-                      const SizedBox(height: 14),
-
                       // Category Dropdown
                       categoriesAsync.when(
                         data: (categories) {
-                          if (_selectedCategoryId == null &&
-                              categories.isNotEmpty) {
-                            _selectedCategoryId = categories.first.id;
+                          if (categories.isEmpty) {
+                            return const Text('No categories available. Please add a category first.',
+                                style: TextStyle(color: AppColors.danger));
+                          }
+                          if (_selectedCatId == null ||
+                              _selectedCatId!.isEmpty ||
+                              !categories.any((c) => c.id == _selectedCatId)) {
+                            _selectedCatId = widget.categoryId ?? categories.first.id;
                           }
                           return DropdownButtonFormField<String>(
-                            initialValue: _selectedCategoryId,
+                            initialValue: _selectedCatId,
                             decoration: const InputDecoration(
                               labelText: 'Category *',
                             ),
@@ -351,12 +177,26 @@ class _ProductFormDialogState extends ConsumerState<ProductFormDialog> {
                               );
                             }).toList(),
                             onChanged: (val) {
-                              setState(() => _selectedCategoryId = val);
+                              if (val != null) setState(() => _selectedCatId = val);
                             },
+                            validator: (val) => val == null || val.isEmpty ? 'Select category' : null,
                           );
                         },
                         loading: () => const LinearProgressIndicator(),
-                        error: (_, _) => const Text('Error loading categories'),
+                        error: (_, _) => const SizedBox(),
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Item Name
+                      TextFormField(
+                        controller: _nameController,
+                        decoration: const InputDecoration(
+                          labelText: 'Item Name *',
+                          hintText: 'e.g. Chicken Tikka Pizza, Zinger Burger',
+                        ),
+                        validator: (val) => val == null || val.trim().isEmpty
+                            ? 'Please enter item name'
+                            : null,
                       ),
                       const SizedBox(height: 14),
 
@@ -364,246 +204,129 @@ class _ProductFormDialogState extends ConsumerState<ProductFormDialog> {
                       TextFormField(
                         controller: _descController,
                         decoration: const InputDecoration(
-                          labelText: 'Description / Ingredients overview',
-                          hintText: 'e.g. Spicy chicken fajita, capsicum, rich mozzarella',
+                          labelText: 'Description (Optional)',
+                          hintText: 'e.g. Spicy chicken tikka, onions, capsicum, cheese',
                         ),
                         maxLines: 2,
                       ),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 20),
 
-                      // Base Price & Base Cost
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextFormField(
-                              controller: _basePriceController,
-                              keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(
-                                labelText: 'Base Selling Price (PKR) *',
-                                prefixText: 'Rs. ',
-                              ),
-                              validator: (val) {
-                                if (val == null || val.trim().isEmpty) {
-                                  return 'Enter price';
-                                }
-                                if (double.tryParse(val) == null) {
-                                  return 'Invalid number';
-                                }
-                                return null;
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: TextFormField(
-                              controller: _baseCostController,
-                              keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(
-                                labelText: 'Base Cost Price (PKR) *',
-                                prefixText: 'Rs. ',
-                              ),
-                              validator: (val) {
-                                if (val == null || val.trim().isEmpty) {
-                                  return 'Enter cost';
-                                }
-                                if (double.tryParse(val) == null) {
-                                  return 'Invalid number';
-                                }
-                                return null;
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 14),
-
-                      // Availability Switch
-                      SwitchListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text('Item Available for Sale'),
-                        subtitle: const Text('Toggle off if temporarily out of stock'),
-                        value: _isAvailable,
-                        onChanged: (val) => setState(() => _isAvailable = val),
-                      ),
-                      const Divider(height: 24),
-
-                      // Multi-size Switch & List
-                      SwitchListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text('Supports Multiple Sizes (e.g. Small / Medium / Large)'),
-                        subtitle: const Text('Set custom pricing & costs per size'),
-                        value: _hasSizes,
-                        onChanged: (val) => setState(() => _hasSizes = val),
-                      ),
-                      if (_hasSizes) ...[
-                        const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
-                              'Product Sizes',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            TextButton.icon(
-                              icon: const Icon(Icons.add, size: 16),
-                              label: const Text('Add Size'),
-                              onPressed: _addSize,
-                            ),
-                          ],
-                        ),
-                        if (_sizes.isEmpty)
-                          const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 8),
-                            child: Text(
-                              'No sizes added yet. Click "+ Add Size" to configure.',
-                              style: TextStyle(
-                                  color: AppColors.textMuted, fontSize: 12),
-                            ),
-                          )
-                        else
-                          ..._sizes.asMap().entries.map((entry) {
-                            final idx = entry.key;
-                            final size = entry.value;
-                            return Card(
-                              margin: const EdgeInsets.only(bottom: 6),
-                              child: ListTile(
-                                dense: true,
-                                title: Text(size.name,
-                                    style: const TextStyle(fontWeight: FontWeight.bold)),
-                                subtitle: Text(
-                                    'Sell: Rs. ${size.price.toStringAsFixed(0)} | Cost: Rs. ${size.costPrice.toStringAsFixed(0)} | Profit: Rs. ${(size.price - size.costPrice).toStringAsFixed(0)}'),
-                                trailing: IconButton(
-                                  icon: const Icon(Icons.delete_outline,
-                                      size: 18, color: AppColors.danger),
-                                  onPressed: () {
-                                    setState(() => _sizes.removeAt(idx));
-                                  },
-                                ),
-                              ),
-                            );
-                          }),
-                        const Divider(height: 24),
-                      ],
-
-                      // Optional Extra Toppings
+                      // Sizes & Prices Section
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Text(
-                            'Optional Extra Toppings',
-                            style: TextStyle(fontWeight: FontWeight.bold),
+                            'Sizes & Prices (PKR) *',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                              color: AppColors.textDark,
+                            ),
                           ),
                           TextButton.icon(
                             icon: const Icon(Icons.add, size: 16),
-                            label: const Text('Add Topping'),
-                            onPressed: _addTopping,
+                            label: const Text('Add Size'),
+                            onPressed: _addSizeRow,
                           ),
                         ],
                       ),
-                      if (_toppings.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 8),
-                          child: Text(
-                            'No toppings configured. (e.g. Extra Mozzarella, Jalapenos, Mushrooms)',
-                            style: TextStyle(
-                                color: AppColors.textMuted, fontSize: 12),
-                          ),
-                        )
-                      else
-                        ..._toppings.asMap().entries.map((entry) {
-                          final idx = entry.key;
-                          final topping = entry.value;
-                          return Card(
-                            margin: const EdgeInsets.only(bottom: 6),
-                            child: ListTile(
-                              dense: true,
-                              title: Text(topping.name,
-                                  style: const TextStyle(fontWeight: FontWeight.bold)),
-                              subtitle: Text(
-                                  '+ Rs. ${topping.price.toStringAsFixed(0)} (Cost: Rs. ${topping.costPrice.toStringAsFixed(0)})'),
-                              trailing: IconButton(
-                                icon: const Icon(Icons.delete_outline,
-                                    size: 18, color: AppColors.danger),
-                                onPressed: () {
-                                  setState(() => _toppings.removeAt(idx));
-                                },
-                              ),
-                            ),
-                          );
-                        }),
-                      const Divider(height: 24),
+                      const SizedBox(height: 8),
 
-                      // Recipe / Inventory usage
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Recipe & Stock Tracking',
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                              Text(
-                                'Deducts stock automatically upon sale',
-                                style: TextStyle(
-                                    fontSize: 11, color: AppColors.textMuted),
-                              ),
-                            ],
-                          ),
-                          TextButton.icon(
-                            icon: const Icon(Icons.add, size: 16),
-                            label: const Text('Link Stock Item'),
-                            onPressed: _addRecipeIngredient,
-                          ),
-                        ],
-                      ),
-                      if (_recipe.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 8),
-                          child: Text(
-                            'No recipe ingredients linked yet. (Optional)',
-                            style: TextStyle(
-                                color: AppColors.textMuted, fontSize: 12),
-                          ),
-                        )
-                      else
-                        ..._recipe.asMap().entries.map((entry) {
-                          final idx = entry.key;
-                          final item = entry.value;
-                          return Card(
-                            margin: const EdgeInsets.only(bottom: 6),
-                            child: ListTile(
-                              dense: true,
-                              leading: const Icon(Icons.inventory_2, size: 18),
-                              title: Text(item.ingredientName,
-                                  style: const TextStyle(fontWeight: FontWeight.bold)),
-                              subtitle: Text(
-                                  'Deducts: ${item.quantityRequired} ${item.unit} per order item'),
-                              trailing: IconButton(
-                                icon: const Icon(Icons.delete_outline,
-                                    size: 18, color: AppColors.danger),
-                                onPressed: () {
-                                  setState(() => _recipe.removeAt(idx));
-                                },
-                              ),
+                      ..._sizes.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final size = entry.value;
+
+                        final nameController = TextEditingController(text: size.name);
+                        final priceController = TextEditingController(
+                            text: size.price > 0 ? size.price.toStringAsFixed(0) : '');
+
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  flex: 3,
+                                  child: TextFormField(
+                                    controller: nameController,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Size Name',
+                                      hintText: 'Small / Medium / Large / Regular',
+                                      isDense: true,
+                                    ),
+                                    onChanged: (val) {
+                                      _sizes[index] = ProductSize(
+                                        name: val,
+                                        price: _sizes[index].price,
+                                        costPrice: 0,
+                                      );
+                                    },
+                                    validator: (val) => val == null || val.trim().isEmpty
+                                        ? 'Required'
+                                        : null,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  flex: 3,
+                                  child: TextFormField(
+                                    controller: priceController,
+                                    keyboardType: TextInputType.number,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Price (PKR)',
+                                      hintText: '0',
+                                      prefixText: 'Rs. ',
+                                      isDense: true,
+                                    ),
+                                    onChanged: (val) {
+                                      final price = double.tryParse(val) ?? 0.0;
+                                      _sizes[index] = ProductSize(
+                                        name: _sizes[index].name,
+                                        price: price,
+                                        costPrice: 0,
+                                      );
+                                    },
+                                    validator: (val) {
+                                      if (val == null || val.trim().isEmpty) {
+                                        return 'Required';
+                                      }
+                                      if (double.tryParse(val) == null || double.parse(val) <= 0) {
+                                        return 'Invalid price';
+                                      }
+                                      return null;
+                                    },
+                                  ),
+                                ),
+                                if (_sizes.length > 1) ...[
+                                  const SizedBox(width: 8),
+                                  IconButton(
+                                    icon: const Icon(Icons.delete_outline, color: AppColors.danger),
+                                    onPressed: () {
+                                      setState(() {
+                                        _sizes.removeAt(index);
+                                      });
+                                    },
+                                  ),
+                                ],
+                              ],
                             ),
-                          );
-                        }),
+                          ),
+                        );
+                      }),
                     ],
                   ),
                 ),
               ),
             ),
 
-            // Footer
+            // Footer Buttons
             Container(
               padding: const EdgeInsets.all(16),
               decoration: const BoxDecoration(
                 color: Colors.white,
                 border: Border(top: BorderSide(color: AppColors.borderGrey)),
-                borderRadius:
-                    BorderRadius.vertical(bottom: Radius.circular(16)),
+                borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
@@ -615,9 +338,7 @@ class _ProductFormDialogState extends ConsumerState<ProductFormDialog> {
                   const SizedBox(width: 12),
                   ElevatedButton.icon(
                     icon: const Icon(Icons.check, size: 18),
-                    label: Text(widget.productToEdit == null
-                        ? 'Create Product'
-                        : 'Save Changes'),
+                    label: Text(widget.productToEdit == null ? 'Save Item' : 'Update Item'),
                     onPressed: _saveProduct,
                   ),
                 ],
