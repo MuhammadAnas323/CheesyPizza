@@ -210,27 +210,11 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
           ),
         ),
         actions: [
-          OutlinedButton.icon(
-            icon: const Icon(Icons.edit, size: 15, color: Colors.blue),
-            label: const Text('Edit', style: TextStyle(color: Colors.blue)),
-            onPressed: () {
-              Navigator.pop(ctx);
-              _showExpenseDialog(expense: expense);
-            },
-          ),
-          ElevatedButton.icon(
+          ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.danger,
+              backgroundColor: AppColors.primaryRed,
               foregroundColor: Colors.white,
             ),
-            icon: const Icon(Icons.delete, size: 15),
-            label: const Text('Delete'),
-            onPressed: () {
-              Navigator.pop(ctx);
-              _confirmDelete(expense);
-            },
-          ),
-          TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: const Text('Close'),
           ),
@@ -282,16 +266,8 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
             ),
             const Divider(height: 1),
             ListTile(
-              leading: const Icon(Icons.info_outline, color: AppColors.primaryRed),
-              title: const Text('View Details'),
-              onTap: () {
-                Navigator.pop(ctx);
-                _showExpenseDetailsDialog(expense);
-              },
-            ),
-            ListTile(
               leading: const Icon(Icons.edit, color: Colors.blue),
-              title: const Text('Edit Expense'),
+              title: const Text('Edit Expense', style: TextStyle(fontWeight: FontWeight.w600)),
               onTap: () {
                 Navigator.pop(ctx);
                 _showExpenseDialog(expense: expense);
@@ -299,7 +275,7 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.delete, color: AppColors.danger),
-              title: const Text('Delete Expense', style: TextStyle(color: AppColors.danger)),
+              title: const Text('Delete Expense', style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.danger)),
               onTap: () {
                 Navigator.pop(ctx);
                 _confirmDelete(expense);
