@@ -593,27 +593,30 @@ class PrinterService {
                     },
                   ),
                 ),
-                const SizedBox(height: 8),
-                ListTile(
-                  leading: const CircleAvatar(
-                    backgroundColor: Color(0xFFFFA000),
-                    child: Icon(Icons.restaurant, color: Colors.white),
-                  ),
-                  title: const Text('Kitchen Slip',
-                      style: TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: const Text('Prints kitchen preparation ticket'),
-                  trailing: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF212529),
+                if (order.status.toLowerCase() != 'completed' &&
+                    order.status.toLowerCase() != 'cancelled') ...[
+                  const SizedBox(height: 8),
+                  ListTile(
+                    leading: const CircleAvatar(
+                      backgroundColor: Color(0xFFFFA000),
+                      child: Icon(Icons.restaurant, color: Colors.white),
                     ),
-                    icon: const Icon(Icons.print, size: 16),
-                    label: const Text('Print KOT'),
-                    onPressed: () {
-                      Navigator.pop(ctx);
-                      printKitchenSlip(order);
-                    },
+                    title: const Text('Kitchen Slip (KOT)',
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: const Text('Prints kitchen preparation ticket'),
+                    trailing: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF212529),
+                      ),
+                      icon: const Icon(Icons.print, size: 16),
+                      label: const Text('Print KOT'),
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        printKitchenSlip(order);
+                      },
+                    ),
                   ),
-                ),
+                ],
                 const SizedBox(height: 12),
               ],
             ),
