@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/product_model.dart';
 import '../../models/category_model.dart';
@@ -474,18 +474,23 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen> {
                                                 ),
                                               ),
                                               if (catName.isNotEmpty) ...[
-                                                Container(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                                  decoration: BoxDecoration(
-                                                    color: AppColors.lightRed.withAlpha(35),
-                                                    borderRadius: BorderRadius.circular(6),
-                                                  ),
-                                                  child: Text(
-                                                    catName,
-                                                    style: const TextStyle(
-                                                      fontSize: 10.5,
-                                                      fontWeight: FontWeight.bold,
-                                                      color: AppColors.primaryRed,
+                                                const SizedBox(width: 6),
+                                                Flexible(
+                                                  child: Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                                    decoration: BoxDecoration(
+                                                      color: AppColors.lightRed.withAlpha(35),
+                                                      borderRadius: BorderRadius.circular(6),
+                                                    ),
+                                                    child: Text(
+                                                      catName,
+                                                      style: const TextStyle(
+                                                        fontSize: 10.5,
+                                                        fontWeight: FontWeight.bold,
+                                                        color: AppColors.primaryRed,
+                                                      ),
+                                                      overflow: TextOverflow.ellipsis,
+                                                      maxLines: 1,
                                                     ),
                                                   ),
                                                 ),

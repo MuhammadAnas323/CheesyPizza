@@ -179,8 +179,9 @@ class OrderModel {
   final String? customerName;
   final String? customerPhone;
   final String? tableOrAddress;
+  final String? discountPersonName; // Name of person receiving the discount
   final String status; // Pending, Completed, Cancelled
-  final String paymentMethod; // Cash, Card, Online
+  final String paymentMethod; // Cash, Account
 
   const OrderModel({
     required this.id,
@@ -199,6 +200,7 @@ class OrderModel {
     this.customerName,
     this.customerPhone,
     this.tableOrAddress,
+    this.discountPersonName,
     this.status = 'Pending',
     this.paymentMethod = 'Cash',
   });
@@ -222,6 +224,7 @@ class OrderModel {
     String? customerName,
     String? customerPhone,
     String? tableOrAddress,
+    String? discountPersonName,
     String? status,
     String? paymentMethod,
   }) {
@@ -242,6 +245,7 @@ class OrderModel {
       customerName: customerName ?? this.customerName,
       customerPhone: customerPhone ?? this.customerPhone,
       tableOrAddress: tableOrAddress ?? this.tableOrAddress,
+      discountPersonName: discountPersonName ?? this.discountPersonName,
       status: status ?? this.status,
       paymentMethod: paymentMethod ?? this.paymentMethod,
     );
@@ -265,6 +269,7 @@ class OrderModel {
       'customerName': customerName,
       'customerPhone': customerPhone,
       'tableOrAddress': tableOrAddress,
+      'discountPersonName': discountPersonName,
       'status': status,
       'paymentMethod': paymentMethod,
     };
@@ -307,6 +312,7 @@ class OrderModel {
       customerName: map['customerName'],
       customerPhone: map['customerPhone'],
       tableOrAddress: map['tableOrAddress'],
+      discountPersonName: map['discountPersonName'],
       status: map['status'] ?? 'Pending',
       paymentMethod: map['paymentMethod'] ?? 'Cash',
     );

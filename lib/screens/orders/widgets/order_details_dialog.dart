@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../models/order_model.dart';
 import '../../../core/theme/app_colors.dart';
@@ -372,12 +372,18 @@ class OrderDetailsDialog extends ConsumerWidget {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(
-                                  order.discountPercentage > 0
-                                      ? 'Discount (${order.discountPercentage.toStringAsFixed(0)}%):'
-                                      : 'Discount:',
-                                  style: const TextStyle(fontSize: 12, color: AppColors.danger),
+                                Expanded(
+                                  child: Text(
+                                    order.discountPersonName != null && order.discountPersonName!.trim().isNotEmpty
+                                        ? 'Discount (${order.discountPercentage > 0 ? "${order.discountPercentage.toStringAsFixed(0)}% - " : ""}${order.discountPersonName!.trim()}):'
+                                        : (order.discountPercentage > 0
+                                            ? 'Discount (${order.discountPercentage.toStringAsFixed(0)}%):'
+                                            : 'Discount:'),
+                                    style: const TextStyle(fontSize: 12, color: AppColors.danger),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
+                                const SizedBox(width: 8),
                                 Text('- ${CurrencyFormatter.format(order.discount)}',
                                     style: const TextStyle(
                                         fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.danger)),
@@ -462,14 +468,9 @@ class OrderDetailsDialog extends ConsumerWidget {
                                       padding: const EdgeInsets.symmetric(vertical: 10),
                                     ),
                                     icon: const Icon(Icons.check_circle, size: 16),
-                                    label: const Text('Mark as Completed',
+                                    label: const Text('Complete Order',
                                         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5)),
-                                    onPressed: () async {
-                                      Navigator.pop(context);
-                                      await ref
-                                          .read(orderNotifierProvider.notifier)
-                                          .updateStatus(order.id, 'Completed');
-                                    },
+                                    onPressed: () => _showCompleteOrderPaymentDialog(context, ref, order),
                                   ),
                                 ),
                                 const SizedBox(width: 8),
@@ -552,6 +553,175 @@ class OrderDetailsDialog extends ConsumerWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showCompleteOrderPaymentDialog(BuildContext context, WidgetRef ref, OrderModel order) {
+    String selectedPaymentMethod = (order.paymentMethod.toLowerCase() == 'account') ? 'Account' : 'Cash';
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (dialogCtx, setDialogState) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: AppColors.successLight,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.check_circle, color: AppColors.success, size: 20),
+                ),
+                const SizedBox(width: 10),
+                const Text(
+                  'Complete Order',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Complete order ${order.orderNumber} for ${CurrencyFormatter.format(order.totalAmount)}.',
+                  style: const TextStyle(fontSize: 13, color: AppColors.textDark),
+                ),
+                const SizedBox(height: 14),
+                const Text(
+                  'Select Payment Method:',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textDark),
+                ),
+                const SizedBox(height: 10),
+
+                // Cash Option
+                InkWell(
+                  borderRadius: BorderRadius.circular(10),
+                  onTap: () => setDialogState(() => selectedPaymentMethod = 'Cash'),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: selectedPaymentMethod == 'Cash'
+                          ? Colors.green.shade50
+                          : Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: selectedPaymentMethod == 'Cash'
+                            ? Colors.green
+                            : AppColors.borderGrey,
+                        width: selectedPaymentMethod == 'Cash' ? 1.8 : 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.payments_outlined,
+                          color: selectedPaymentMethod == 'Cash' ? Colors.green : AppColors.textMuted,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 10),
+                        const Expanded(
+                          child: Text(
+                            'Cash',
+                            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5),
+                          ),
+                        ),
+                        Icon(
+                          selectedPaymentMethod == 'Cash'
+                              ? Icons.radio_button_checked
+                              : Icons.radio_button_unchecked,
+                          color: selectedPaymentMethod == 'Cash' ? Colors.green : AppColors.textMuted,
+                          size: 22,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+
+                // Account Option
+                InkWell(
+                  borderRadius: BorderRadius.circular(10),
+                  onTap: () => setDialogState(() => selectedPaymentMethod = 'Account'),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: selectedPaymentMethod == 'Account'
+                          ? Colors.blue.shade50
+                          : Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: selectedPaymentMethod == 'Account'
+                            ? Colors.blue
+                            : AppColors.borderGrey,
+                        width: selectedPaymentMethod == 'Account' ? 1.8 : 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.account_balance_outlined,
+                          color: selectedPaymentMethod == 'Account' ? Colors.blue : AppColors.textMuted,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 10),
+                        const Expanded(
+                          child: Text(
+                            'Account (Digital / Bank Transfer)',
+                            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5),
+                          ),
+                        ),
+                        Icon(
+                          selectedPaymentMethod == 'Account'
+                              ? Icons.radio_button_checked
+                              : Icons.radio_button_unchecked,
+                          color: selectedPaymentMethod == 'Account' ? Colors.blue : AppColors.textMuted,
+                          size: 22,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogCtx),
+                child: const Text('Back'),
+              ),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.success,
+                  foregroundColor: Colors.white,
+                ),
+                icon: const Icon(Icons.check, size: 16),
+                label: const Text('Confirm & Complete'),
+                onPressed: () async {
+                  Navigator.pop(dialogCtx); // Close payment dialog
+                  Navigator.pop(context); // Close details dialog
+                  await ref.read(orderNotifierProvider.notifier).updateStatus(
+                        order.id,
+                        'Completed',
+                        paymentMethod: selectedPaymentMethod,
+                      );
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                            'Order ${order.orderNumber} completed with payment method: $selectedPaymentMethod'),
+                        backgroundColor: AppColors.success,
+                      ),
+                    );
+                  }
+                },
+              ),
+            ],
+          );
+        },
       ),
     );
   }

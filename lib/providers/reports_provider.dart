@@ -28,17 +28,27 @@ class ProductMetric {
 
 class SalesReportData {
   final double totalRevenue;
+  final double cashRevenue;
+  final double accountRevenue;
+  final double otherRevenue;
   final double totalExpenses;
   final double netProfit;
   final int totalOrdersCount;
+  final int cashOrdersCount;
+  final int accountOrdersCount;
   final List<ProductMetric> productMetrics;
   final List<OrderModel> orders;
 
   const SalesReportData({
     this.totalRevenue = 0.0,
+    this.cashRevenue = 0.0,
+    this.accountRevenue = 0.0,
+    this.otherRevenue = 0.0,
     this.totalExpenses = 0.0,
     this.netProfit = 0.0,
     this.totalOrdersCount = 0,
+    this.cashOrdersCount = 0,
+    this.accountOrdersCount = 0,
     this.productMetrics = const [],
     this.orders = const [],
   });
@@ -61,10 +71,28 @@ SalesReportData _calculateReportForOrders({
   final completedOrders = orders.where((o) => o.status.toLowerCase() == 'completed').toList();
 
   double totalRevenue = 0.0;
+  double cashRevenue = 0.0;
+  double accountRevenue = 0.0;
+  double otherRevenue = 0.0;
+  int cashOrdersCount = 0;
+  int accountOrdersCount = 0;
+
   final Map<String, ProductMetric> prodMap = {};
 
   for (final order in completedOrders) {
     totalRevenue += order.totalAmount;
+
+    final method = order.paymentMethod.trim().toLowerCase();
+    if (method == 'cash') {
+      cashRevenue += order.totalAmount;
+      cashOrdersCount++;
+    } else if (method == 'account' || method == 'online' || method == 'card') {
+      // Account / bank / digital transfer
+      accountRevenue += order.totalAmount;
+      accountOrdersCount++;
+    } else {
+      otherRevenue += order.totalAmount;
+    }
 
     for (final item in order.items) {
       final pKey = item.displayName;
@@ -81,9 +109,14 @@ SalesReportData _calculateReportForOrders({
 
   return SalesReportData(
     totalRevenue: totalRevenue,
+    cashRevenue: cashRevenue,
+    accountRevenue: accountRevenue,
+    otherRevenue: otherRevenue,
     totalExpenses: totalExpenses,
     netProfit: totalRevenue - totalExpenses,
     totalOrdersCount: completedOrders.length,
+    cashOrdersCount: cashOrdersCount,
+    accountOrdersCount: accountOrdersCount,
     productMetrics: prodList,
     orders: orders, // Keep all orders in list for history viewing
   );

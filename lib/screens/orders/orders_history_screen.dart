@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../../models/order_model.dart';
@@ -266,6 +266,49 @@ class _OrdersHistoryScreenState extends ConsumerState<OrdersHistoryScreen> {
                                                         fontWeight: FontWeight.bold,
                                                         color: isCompleted ? AppColors.success : AppColors.warning)),
                                               ),
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                decoration: BoxDecoration(
+                                                  color: order.paymentMethod.toLowerCase() == 'account'
+                                                      ? Colors.blue.shade50
+                                                      : Colors.green.shade50,
+                                                  borderRadius: BorderRadius.circular(4),
+                                                ),
+                                                child: Text(
+                                                  order.paymentMethod,
+                                                  style: TextStyle(
+                                                    fontSize: 10,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: order.paymentMethod.toLowerCase() == 'account'
+                                                        ? Colors.blue.shade800
+                                                        : Colors.green.shade800,
+                                                  ),
+                                                ),
+                                              ),
+                                              if (order.discountPersonName != null &&
+                                                  order.discountPersonName!.trim().isNotEmpty)
+                                                Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                  decoration: BoxDecoration(
+                                                    color: AppColors.danger.withAlpha(25),
+                                                    borderRadius: BorderRadius.circular(4),
+                                                  ),
+                                                  child: Row(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: [
+                                                      const Icon(Icons.person_pin, size: 10, color: AppColors.danger),
+                                                      const SizedBox(width: 3),
+                                                      Text(
+                                                        'Disc: ${order.discountPersonName!.trim()}',
+                                                        style: const TextStyle(
+                                                          fontSize: 10,
+                                                          fontWeight: FontWeight.bold,
+                                                          color: AppColors.danger,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
                                             ],
                                           ),
                                           const SizedBox(height: 6),
@@ -354,6 +397,27 @@ class _OrdersHistoryScreenState extends ConsumerState<OrdersHistoryScreen> {
                                                         ),
                                                       ),
                                                     ),
+                                                    const SizedBox(width: 6),
+                                                    Container(
+                                                      padding: const EdgeInsets.symmetric(
+                                                          horizontal: 8, vertical: 3),
+                                                      decoration: BoxDecoration(
+                                                        color: order.paymentMethod.toLowerCase() == 'account'
+                                                            ? Colors.blue.shade50
+                                                            : Colors.green.shade50,
+                                                        borderRadius: BorderRadius.circular(4),
+                                                      ),
+                                                      child: Text(
+                                                        order.paymentMethod,
+                                                        style: TextStyle(
+                                                          fontSize: 11,
+                                                          fontWeight: FontWeight.bold,
+                                                          color: order.paymentMethod.toLowerCase() == 'account'
+                                                              ? Colors.blue.shade800
+                                                              : Colors.green.shade800,
+                                                        ),
+                                                      ),
+                                                    ),
                                                   ],
                                                 ),
                                                 const SizedBox(height: 4),
@@ -373,6 +437,24 @@ class _OrdersHistoryScreenState extends ConsumerState<OrdersHistoryScreen> {
                                                       fontWeight: FontWeight.w500,
                                                       color: AppColors.textDark,
                                                     ),
+                                                  ),
+                                                ],
+                                                if (order.discountPersonName != null &&
+                                                    order.discountPersonName!.trim().isNotEmpty) ...[
+                                                  const SizedBox(height: 2),
+                                                  Row(
+                                                    children: [
+                                                      const Icon(Icons.person_pin, size: 12, color: AppColors.danger),
+                                                      const SizedBox(width: 4),
+                                                      Text(
+                                                        'Discount: ${order.discountPersonName!.trim()}',
+                                                        style: const TextStyle(
+                                                          fontSize: 11,
+                                                          fontWeight: FontWeight.w500,
+                                                          color: AppColors.danger,
+                                                        ),
+                                                      ),
+                                                    ],
                                                   ),
                                                 ],
                                               ],
@@ -463,12 +545,13 @@ class NewOrderDialog extends ConsumerStatefulWidget {
 class _NewOrderDialogState extends ConsumerState<NewOrderDialog> {
   final List<OrderItem> _cartItems = [];
   OrderType _orderType = OrderType.dineIn;
-  final String _paymentMethod = 'Cash';
+  String _paymentMethod = 'Cash';
   final TextEditingController _customerNameController = TextEditingController();
   final TextEditingController _customerPhoneController = TextEditingController();
   final TextEditingController _extraChargesController = TextEditingController(text: '0');
   final TextEditingController _extraChargesNoteController = TextEditingController();
   final TextEditingController _discountPercentController = TextEditingController(text: '0');
+  final TextEditingController _discountPersonController = TextEditingController();
   String? _selectedCategoryFilter; // null means 'All'
 
   @override
@@ -478,6 +561,7 @@ class _NewOrderDialogState extends ConsumerState<NewOrderDialog> {
     _extraChargesController.dispose();
     _extraChargesNoteController.dispose();
     _discountPercentController.dispose();
+    _discountPersonController.dispose();
     super.dispose();
   }
 
@@ -581,6 +665,9 @@ class _NewOrderDialogState extends ConsumerState<NewOrderDialog> {
           ? _customerPhoneController.text.trim()
           : null,
       tableOrAddress: null,
+      discountPersonName: _discountAmount > 0 && _discountPersonController.text.trim().isNotEmpty
+          ? _discountPersonController.text.trim()
+          : null,
       status: 'Pending',
       paymentMethod: _paymentMethod,
     );
@@ -989,23 +1076,47 @@ class _NewOrderDialogState extends ConsumerState<NewOrderDialog> {
                           ),
                           const SizedBox(height: 8),
 
-                          // Order Type selector
-                          DropdownButtonFormField<OrderType>(
-                            initialValue: _orderType,
-                            decoration: const InputDecoration(
-                              labelText: 'Order Type',
-                              prefixIcon: Icon(Icons.room_service_outlined, size: 18),
-                              isDense: true,
-                            ),
-                            items: OrderType.values.map((type) {
-                              return DropdownMenuItem(
-                                value: type,
-                                child: Text(type.label),
-                              );
-                            }).toList(),
-                            onChanged: (val) {
-                              if (val != null) setState(() => _orderType = val);
-                            },
+                          // Order Type & Payment Method row
+                          Row(
+                            children: [
+                              Expanded(
+                                child: DropdownButtonFormField<OrderType>(
+                                  initialValue: _orderType,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Order Type',
+                                    prefixIcon: Icon(Icons.room_service_outlined, size: 18),
+                                    isDense: true,
+                                  ),
+                                  items: OrderType.values.map((type) {
+                                    return DropdownMenuItem(
+                                      value: type,
+                                      child: Text(type.label, overflow: TextOverflow.ellipsis),
+                                    );
+                                  }).toList(),
+                                  onChanged: (val) {
+                                    if (val != null) setState(() => _orderType = val);
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: DropdownButtonFormField<String>(
+                                  initialValue: _paymentMethod,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Payment',
+                                    prefixIcon: Icon(Icons.payments_outlined, size: 18),
+                                    isDense: true,
+                                  ),
+                                  items: const [
+                                    DropdownMenuItem(value: 'Cash', child: Text('Cash')),
+                                    DropdownMenuItem(value: 'Account', child: Text('Account')),
+                                  ],
+                                  onChanged: (val) {
+                                    if (val != null) setState(() => _paymentMethod = val);
+                                  },
+                                ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 8),
 
@@ -1049,6 +1160,20 @@ class _NewOrderDialogState extends ConsumerState<NewOrderDialog> {
                               }).toList(),
                             ),
                           ),
+
+                          // Discount Person Name (Visible when discount > 0)
+                          if (_discountAmount > 0) ...[
+                            const SizedBox(height: 8),
+                            TextField(
+                              controller: _discountPersonController,
+                              decoration: const InputDecoration(
+                                labelText: 'Discount Person Name',
+                                hintText: 'Enter name of person for discount',
+                                prefixIcon: Icon(Icons.person_pin_outlined, size: 18, color: AppColors.danger),
+                                isDense: true,
+                              ),
+                            ),
+                          ],
                           const SizedBox(height: 8),
 
                           // Additional / Extra Charges

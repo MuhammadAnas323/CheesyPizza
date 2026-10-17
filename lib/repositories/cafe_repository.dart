@@ -141,12 +141,15 @@ class CafeRepository {
     return order;
   }
 
-  Future<void> updateOrderStatus(String orderId, String newStatus) async {
+  Future<void> updateOrderStatus(String orderId, String newStatus, {String? paymentMethod}) async {
     final orders = await getOrders();
     final index = orders.indexWhere((o) => o.id == orderId);
     if (index >= 0) {
       // Use copyWith so extraCharges, notes, and customer details are strictly preserved
-      final updated = orders[index].copyWith(status: newStatus);
+      final updated = orders[index].copyWith(
+        status: newStatus,
+        paymentMethod: paymentMethod ?? orders[index].paymentMethod,
+      );
       orders[index] = updated;
       if (_firebaseService.isAvailable) {
         try {
