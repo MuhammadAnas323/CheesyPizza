@@ -169,6 +169,7 @@ class OrderModel {
   final OrderType orderType;
   final List<OrderItem> items;
   final double subtotal;
+  final double discountPercentage; // e.g. 10.0 for 10%
   final double discount;
   final double extraCharges;
   final String? extraChargesNote;
@@ -188,6 +189,7 @@ class OrderModel {
     required this.orderType,
     required this.items,
     required this.subtotal,
+    this.discountPercentage = 0.0,
     required this.discount,
     this.extraCharges = 0.0,
     this.extraChargesNote,
@@ -203,6 +205,48 @@ class OrderModel {
 
   int get totalItemsSold => items.fold(0, (sum, item) => sum + item.quantity);
 
+  OrderModel copyWith({
+    String? id,
+    String? orderNumber,
+    DateTime? createdAt,
+    OrderType? orderType,
+    List<OrderItem>? items,
+    double? subtotal,
+    double? discountPercentage,
+    double? discount,
+    double? extraCharges,
+    String? extraChargesNote,
+    double? totalAmount,
+    double? totalCost,
+    double? estimatedProfit,
+    String? customerName,
+    String? customerPhone,
+    String? tableOrAddress,
+    String? status,
+    String? paymentMethod,
+  }) {
+    return OrderModel(
+      id: id ?? this.id,
+      orderNumber: orderNumber ?? this.orderNumber,
+      createdAt: createdAt ?? this.createdAt,
+      orderType: orderType ?? this.orderType,
+      items: items ?? this.items,
+      subtotal: subtotal ?? this.subtotal,
+      discountPercentage: discountPercentage ?? this.discountPercentage,
+      discount: discount ?? this.discount,
+      extraCharges: extraCharges ?? this.extraCharges,
+      extraChargesNote: extraChargesNote ?? this.extraChargesNote,
+      totalAmount: totalAmount ?? this.totalAmount,
+      totalCost: totalCost ?? this.totalCost,
+      estimatedProfit: estimatedProfit ?? this.estimatedProfit,
+      customerName: customerName ?? this.customerName,
+      customerPhone: customerPhone ?? this.customerPhone,
+      tableOrAddress: tableOrAddress ?? this.tableOrAddress,
+      status: status ?? this.status,
+      paymentMethod: paymentMethod ?? this.paymentMethod,
+    );
+  }
+
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -211,6 +255,7 @@ class OrderModel {
       'orderType': orderType.label,
       'items': items.map((i) => i.toMap()).toList(),
       'subtotal': subtotal,
+      'discountPercentage': discountPercentage,
       'discount': discount,
       'extraCharges': extraCharges,
       'extraChargesNote': extraChargesNote,
@@ -232,7 +277,8 @@ class OrderModel {
         [];
 
     final double subtotal = (map['subtotal'] as num?)?.toDouble() ?? 0.0;
-    final double discount = (map['discount'] as num?)?.toDouble() ?? 0.0;
+    final double discountPercentage = (map['discountPercentage'] as num?)?.toDouble() ?? 0.0;
+    final double discount = (map['discount'] as num?)?.toDouble() ?? (subtotal * (discountPercentage / 100));
     final double extraCharges = (map['extraCharges'] as num?)?.toDouble() ?? 0.0;
     final double totalAmount = (map['totalAmount'] as num?)?.toDouble() ?? (subtotal - discount + extraCharges);
     final double calculatedCost =
@@ -251,6 +297,7 @@ class OrderModel {
       orderType: OrderType.fromString(map['orderType'] ?? 'Dine-in'),
       items: itemsList,
       subtotal: subtotal,
+      discountPercentage: discountPercentage,
       discount: discount,
       extraCharges: extraCharges,
       extraChargesNote: map['extraChargesNote'],
@@ -262,46 +309,6 @@ class OrderModel {
       tableOrAddress: map['tableOrAddress'],
       status: map['status'] ?? 'Pending',
       paymentMethod: map['paymentMethod'] ?? 'Cash',
-    );
-  }
-
-  OrderModel copyWith({
-    String? id,
-    String? orderNumber,
-    DateTime? createdAt,
-    OrderType? orderType,
-    List<OrderItem>? items,
-    double? subtotal,
-    double? discount,
-    double? extraCharges,
-    String? extraChargesNote,
-    double? totalAmount,
-    double? totalCost,
-    double? estimatedProfit,
-    String? customerName,
-    String? customerPhone,
-    String? tableOrAddress,
-    String? status,
-    String? paymentMethod,
-  }) {
-    return OrderModel(
-      id: id ?? this.id,
-      orderNumber: orderNumber ?? this.orderNumber,
-      createdAt: createdAt ?? this.createdAt,
-      orderType: orderType ?? this.orderType,
-      items: items ?? this.items,
-      subtotal: subtotal ?? this.subtotal,
-      discount: discount ?? this.discount,
-      extraCharges: extraCharges ?? this.extraCharges,
-      extraChargesNote: extraChargesNote ?? this.extraChargesNote,
-      totalAmount: totalAmount ?? this.totalAmount,
-      totalCost: totalCost ?? this.totalCost,
-      estimatedProfit: estimatedProfit ?? this.estimatedProfit,
-      customerName: customerName ?? this.customerName,
-      customerPhone: customerPhone ?? this.customerPhone,
-      tableOrAddress: tableOrAddress ?? this.tableOrAddress,
-      status: status ?? this.status,
-      paymentMethod: paymentMethod ?? this.paymentMethod,
     );
   }
 }

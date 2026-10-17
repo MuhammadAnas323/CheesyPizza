@@ -40,11 +40,11 @@ class _ProductFormDialogState extends ConsumerState<ProductFormDialog> {
       if (p.hasSizes && p.sizes.isNotEmpty) {
         _sizes = List.from(p.sizes);
       } else if (p.basePrice > 0) {
-        _sizes = [ProductSize(name: 'Regular', price: p.basePrice, costPrice: 0)];
+        _sizes = [ProductSize(name: '', price: p.basePrice, costPrice: 0)];
       }
     }
     if (_sizes.isEmpty) {
-      _sizes = [ProductSize(name: 'Regular', price: 0, costPrice: 0)];
+      _sizes = [ProductSize(name: '', price: 0, costPrice: 0)];
     }
   }
 
@@ -57,7 +57,7 @@ class _ProductFormDialogState extends ConsumerState<ProductFormDialog> {
 
   void _addSizeRow() {
     setState(() {
-      _sizes.add(ProductSize(name: 'Large', price: 0, costPrice: 0));
+      _sizes.add(ProductSize(name: '', price: 0, costPrice: 0));
     });
   }
 
@@ -236,11 +236,8 @@ class _ProductFormDialogState extends ConsumerState<ProductFormDialog> {
                         final index = entry.key;
                         final size = entry.value;
 
-                        final nameController = TextEditingController(text: size.name);
-                        final priceController = TextEditingController(
-                            text: size.price > 0 ? size.price.toStringAsFixed(0) : '');
-
                         return Card(
+                          key: ValueKey('size_row_$index'),
                           margin: const EdgeInsets.only(bottom: 10),
                           child: Padding(
                             padding: const EdgeInsets.all(12),
@@ -249,10 +246,10 @@ class _ProductFormDialogState extends ConsumerState<ProductFormDialog> {
                                 Expanded(
                                   flex: 3,
                                   child: TextFormField(
-                                    controller: nameController,
+                                    initialValue: size.name,
                                     decoration: const InputDecoration(
                                       labelText: 'Size Name',
-                                      hintText: 'Small / Medium / Large / Regular',
+                                      hintText: 'e.g. Small / Medium / Large',
                                       isDense: true,
                                     ),
                                     onChanged: (val) {
@@ -271,7 +268,7 @@ class _ProductFormDialogState extends ConsumerState<ProductFormDialog> {
                                 Expanded(
                                   flex: 3,
                                   child: TextFormField(
-                                    controller: priceController,
+                                    initialValue: size.price > 0 ? size.price.toStringAsFixed(0) : '',
                                     keyboardType: TextInputType.number,
                                     decoration: const InputDecoration(
                                       labelText: 'Price (PKR)',

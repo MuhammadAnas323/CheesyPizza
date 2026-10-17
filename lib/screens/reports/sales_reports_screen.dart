@@ -92,9 +92,9 @@ class SalesReportsScreen extends ConsumerWidget {
               builder: (context, constraints) {
                 int crossAxisCount;
                 double aspectRatio;
-                if (constraints.maxWidth > 900) {
-                  crossAxisCount = 4;
-                  aspectRatio = 2.0;
+                if (constraints.maxWidth > 850) {
+                  crossAxisCount = 3;
+                  aspectRatio = 2.4;
                 } else if (constraints.maxWidth > 550) {
                   crossAxisCount = 2;
                   aspectRatio = 2.3;
@@ -124,13 +124,6 @@ class SalesReportsScreen extends ConsumerWidget {
                       icon: Icons.receipt_long,
                       iconColor: Colors.deepOrange,
                       bgColor: Colors.deepOrange.withAlpha(25),
-                    ),
-                    _buildReportMetricCard(
-                      title: "Net Profit / Balance",
-                      value: CurrencyFormatter.format(reportData.netProfit),
-                      icon: Icons.account_balance_wallet,
-                      iconColor: reportData.netProfit >= 0 ? AppColors.success : AppColors.danger,
-                      bgColor: reportData.netProfit >= 0 ? AppColors.successLight : AppColors.lightRed,
                     ),
                     _buildReportMetricCard(
                       title: "Completed Orders",

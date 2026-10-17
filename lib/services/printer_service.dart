@@ -218,16 +218,12 @@ class PrinterService {
 
                 // Calculations
                 _buildSummaryRow('Subtotal:', CurrencyFormatter.format(order.subtotal).replaceAll('Rs. ', '')),
-                if (order.discount > 0)
+                if (order.discountPercentage > 0)
                   _buildSummaryRow(
-                      'Discount:', '- ${CurrencyFormatter.format(order.discount).replaceAll('Rs. ', '')}'),
+                      'Discount (${order.discountPercentage.toStringAsFixed(0)}%):', '- ${CurrencyFormatter.format(order.discount).replaceAll('Rs. ', '')}'),
                 if (order.extraCharges > 0)
                   _buildSummaryRow(
-                    order.extraChargesNote != null && order.extraChargesNote!.trim().isNotEmpty
-                        ? 'Extra Charges (${order.extraChargesNote!.trim()}):'
-                        : 'Extra Charges:',
-                    '+ ${CurrencyFormatter.format(order.extraCharges).replaceAll('Rs. ', '')}',
-                  ),
+                      '${order.extraChargesNote ?? "Extra Charges"}:', '+ ${CurrencyFormatter.format(order.extraCharges).replaceAll('Rs. ', '')}'),
                 pw.SizedBox(height: 3),
                 _buildSolidDivider(),
                 pw.SizedBox(height: 4),

@@ -43,36 +43,9 @@ class _OrdersHistoryScreenState extends ConsumerState<OrdersHistoryScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Order ${order.orderNumber}',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    DateFormatter.formatDateTime(order.createdAt),
-                    style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            IconButton(
-              icon: const Icon(Icons.close, size: 20),
-              onPressed: () => Navigator.pop(ctx),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-            ),
-          ],
-        ),
+        title: Text('Order Details & Actions (${order.orderNumber})',
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         content: SizedBox(
           width: screenWidth > 550 ? 500 : screenWidth * 0.9,
           child: SingleChildScrollView(
@@ -80,142 +53,31 @@ class _OrdersHistoryScreenState extends ConsumerState<OrdersHistoryScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Responsive Order Status and Order Type Chips (Wrap prevents overflow on Parcel/Takeaway)
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  crossAxisAlignment: WrapCrossAlignment.center,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: order.status == 'Completed'
-                            ? AppColors.successLight
-                            : (order.status == 'Cancelled'
-                                ? AppColors.danger.withAlpha(30)
-                                : AppColors.warningLight),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        order.status,
+                    Text('Status: ${order.status}',
                         style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 11,
-                          color: order.status == 'Completed'
-                              ? AppColors.success
-                              : (order.status == 'Cancelled'
-                                  ? AppColors.danger
-                                  : AppColors.warning),
-                        ),
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryRed.withAlpha(25),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            order.orderType == OrderType.takeaway
-                                ? Icons.takeout_dining
-                                : (order.orderType == OrderType.delivery
-                                    ? Icons.delivery_dining
-                                    : Icons.restaurant),
-                            size: 13,
-                            color: AppColors.primaryRed,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            order.orderType.label,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 11,
-                              color: AppColors.primaryRed,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: AppColors.lightGrey,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        order.paymentMethod,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.mediumGrey,
-                        ),
-                      ),
-                    ),
+                            fontWeight: FontWeight.bold,
+                            color: order.status == 'Completed'
+                                ? AppColors.success
+                                : AppColors.warning)),
+                    Text('Type: ${order.orderType.label}',
+                        style: const TextStyle(fontWeight: FontWeight.bold)),
                   ],
                 ),
-                if (order.customerName != null && order.customerName!.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const Icon(Icons.person, size: 14, color: AppColors.textMuted),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          '${order.customerName}${order.customerPhone != null && order.customerPhone!.isNotEmpty ? ' (${order.customerPhone})' : ''}',
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-                if (order.tableOrAddress != null && order.tableOrAddress!.isNotEmpty) ...[
-                  const SizedBox(height: 3),
-                  Row(
-                    children: [
-                      const Icon(Icons.location_on, size: 14, color: AppColors.textMuted),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          order.tableOrAddress!,
-                          style: const TextStyle(fontSize: 11.5, color: AppColors.textMuted),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                if (order.customerName != null && order.customerName!.isNotEmpty)
+                  Text('Customer: ${order.customerName}'),
                 const Divider(height: 16),
-                const Text('Items Ordered:',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                const Text('Items:',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 4),
                 ...order.items.map((item) => Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 2.5),
+                      padding: const EdgeInsets.symmetric(vertical: 2),
                       child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('${item.quantity}x ${item.displayName}',
-                                    style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 12.5)),
-                                if (item.notes != null && item.notes!.isNotEmpty)
-                                  Text(
-                                    'Note: ${item.notes}',
-                                    style: const TextStyle(fontSize: 10.5, color: AppColors.primaryRed),
-                                  ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            CurrencyFormatter.format(item.totalPrice),
-                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12.5),
-                          ),
+                          Expanded(child: Text('${item.quantity}x ${item.displayName}')),
+                          Text(CurrencyFormatter.format(item.totalPrice)),
                         ],
                       ),
                     )),
@@ -223,49 +85,32 @@ class _OrdersHistoryScreenState extends ConsumerState<OrdersHistoryScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Subtotal:', style: TextStyle(fontSize: 12.5)),
-                    Text(CurrencyFormatter.format(order.subtotal), style: const TextStyle(fontSize: 12.5)),
+                    const Text('Subtotal:'),
+                    Text(CurrencyFormatter.format(order.subtotal)),
                   ],
                 ),
-                if (order.discount > 0)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 1.5),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('Discount:', style: TextStyle(fontSize: 12.5)),
-                        Text('- ${CurrencyFormatter.format(order.discount)}',
-                            style: const TextStyle(color: AppColors.danger, fontSize: 12.5)),
-                      ],
-                    ),
+                if (order.discountPercentage > 0)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Discount (${order.discountPercentage.toStringAsFixed(0)}%):',
+                          style: const TextStyle(color: AppColors.danger)),
+                      Text('- ${CurrencyFormatter.format(order.discount)}',
+                          style: const TextStyle(color: AppColors.danger)),
+                    ],
                   ),
                 if (order.extraCharges > 0)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 1.5),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            order.extraChargesNote != null && order.extraChargesNote!.trim().isNotEmpty
-                                ? 'Extra Charges (${order.extraChargesNote!.trim()}):'
-                                : 'Extra Charges:',
-                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12.5),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '+ ${CurrencyFormatter.format(order.extraCharges)}',
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('${order.extraChargesNote ?? "Extra Charges"}:',
+                          style: const TextStyle(fontWeight: FontWeight.w600)),
+                      Text('+ ${CurrencyFormatter.format(order.extraCharges)}',
                           style: const TextStyle(
-                            color: AppColors.primaryRed,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12.5,
-                          ),
-                        ),
-                      ],
-                    ),
+                              color: AppColors.primaryRed,
+                              fontWeight: FontWeight.bold)),
+                    ],
                   ),
-                const SizedBox(height: 4),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -279,9 +124,9 @@ class _OrdersHistoryScreenState extends ConsumerState<OrdersHistoryScreen> {
                             color: AppColors.primaryRed)),
                   ],
                 ),
-                const Divider(height: 18),
+                const Divider(height: 20),
                 const Text('Update Status:',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5)),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                 const SizedBox(height: 8),
                 Row(
                   children: [
@@ -289,11 +134,9 @@ class _OrdersHistoryScreenState extends ConsumerState<OrdersHistoryScreen> {
                       Expanded(
                         child: ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.success,
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                          ),
-                          icon: const Icon(Icons.check, size: 15),
-                          label: const Text('Complete', style: TextStyle(fontSize: 12.5)),
+                              backgroundColor: AppColors.success),
+                          icon: const Icon(Icons.check, size: 16),
+                          label: const Text('Complete'),
                           onPressed: () async {
                             Navigator.pop(ctx);
                             await ref
@@ -309,11 +152,9 @@ class _OrdersHistoryScreenState extends ConsumerState<OrdersHistoryScreen> {
                       Expanded(
                         child: OutlinedButton.icon(
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.danger,
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                          ),
-                          icon: const Icon(Icons.cancel, size: 15),
-                          label: const Text('Cancel', style: TextStyle(fontSize: 12.5)),
+                              foregroundColor: AppColors.danger),
+                          icon: const Icon(Icons.cancel, size: 16),
+                          label: const Text('Cancel'),
                           onPressed: () async {
                             Navigator.pop(ctx);
                             await ref
@@ -329,30 +170,19 @@ class _OrdersHistoryScreenState extends ConsumerState<OrdersHistoryScreen> {
           ),
         ),
         actions: [
-          Wrap(
-            alignment: WrapAlignment.end,
-            spacing: 8,
-            runSpacing: 6,
-            children: [
-              OutlinedButton.icon(
-                icon: const Icon(Icons.restaurant, size: 15),
-                label: const Text('Kitchen Slip', style: TextStyle(fontSize: 12)),
-                onPressed: () => PrinterService.printKitchenSlip(order),
-              ),
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryRed,
-                  foregroundColor: Colors.white,
-                ),
-                icon: const Icon(Icons.print, size: 15),
-                label: const Text('Customer Slip', style: TextStyle(fontSize: 12)),
-                onPressed: () => PrinterService.printReceipt(order),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Close'),
-              ),
-            ],
+          OutlinedButton.icon(
+            icon: const Icon(Icons.restaurant, size: 16),
+            label: const Text('Kitchen Slip'),
+            onPressed: () => PrinterService.printKitchenSlip(order),
+          ),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.print, size: 16),
+            label: const Text('Customer Slip'),
+            onPressed: () => PrinterService.printReceipt(order),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Close'),
           ),
         ],
       ),
@@ -784,6 +614,7 @@ class _NewOrderDialogState extends ConsumerState<NewOrderDialog> {
   final TextEditingController _customerPhoneController = TextEditingController();
   final TextEditingController _extraChargesController = TextEditingController(text: '0');
   final TextEditingController _extraChargesNoteController = TextEditingController();
+  final TextEditingController _discountPercentController = TextEditingController(text: '0');
   String? _selectedCategoryFilter; // null means 'All'
 
   @override
@@ -792,17 +623,20 @@ class _NewOrderDialogState extends ConsumerState<NewOrderDialog> {
     _customerPhoneController.dispose();
     _extraChargesController.dispose();
     _extraChargesNoteController.dispose();
+    _discountPercentController.dispose();
     super.dispose();
   }
 
   double get _subtotal => _cartItems.fold(0.0, (sum, i) => sum + i.totalPrice);
+  double get _discountPercentage => double.tryParse(_discountPercentController.text) ?? 0.0;
+  double get _discountAmount => _subtotal * (_discountPercentage / 100);
   double get _extraCharges => double.tryParse(_extraChargesController.text) ?? 0.0;
-  double get _totalBill => (_subtotal + _extraCharges).clamp(0.0, 999999.0);
+  double get _totalBill => (_subtotal - _discountAmount + _extraCharges).clamp(0.0, 999999.0);
   double get _totalCost => _cartItems.fold(0.0, (sum, i) => sum + i.totalCost);
 
   void _selectProductSizeAndAdd(ProductModel product) {
     if (product.sizes.length <= 1) {
-      final size = product.sizes.isNotEmpty ? product.sizes.first : ProductSize(name: 'Regular', price: product.basePrice, costPrice: 0);
+      final size = product.sizes.isNotEmpty ? product.sizes.first : ProductSize(name: '', price: product.basePrice, costPrice: 0);
       _addToCart(product, size.name, size.price);
     } else {
       showDialog(
@@ -879,7 +713,8 @@ class _NewOrderDialogState extends ConsumerState<NewOrderDialog> {
       orderType: _orderType,
       items: List.from(_cartItems),
       subtotal: _subtotal,
-      discount: 0.0,
+      discountPercentage: _discountPercentage,
+      discount: _discountAmount,
       extraCharges: extraCharges,
       extraChargesNote: _extraChargesNoteController.text.trim().isNotEmpty ? _extraChargesNoteController.text.trim() : null,
       totalAmount: _totalBill,
@@ -970,85 +805,119 @@ class _NewOrderDialogState extends ConsumerState<NewOrderDialog> {
                 builder: (context, constraints) {
                   final isWide = constraints.maxWidth >= 750;
 
+                  final categories = categoriesAsync.asData?.value ?? [];
+                  final effectiveCatId = (_selectedCategoryFilter != null &&
+                          categories.any((c) => c.id == _selectedCategoryFilter))
+                      ? _selectedCategoryFilter
+                      : (categories.isNotEmpty ? categories.first.id : null);
+
                   final menuBrowser = Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Categories as Filter Chips at the top of order placing dialog
+                      // Categories as Filter Chips (NO "All Categories" filter chip)
                       categoriesAsync.when(
-                        data: (categories) {
-                          return SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
+                        data: (catList) {
+                          if (catList.isEmpty) {
+                            return const SizedBox(
+                              height: 48,
+                              child: Center(
+                                child: Text('No categories found',
+                                    style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                              ),
+                            );
+                          }
+
+                          return Container(
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade50,
+                              border: Border(
+                                bottom: BorderSide(color: AppColors.borderGrey.withAlpha(128)),
+                              ),
+                            ),
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                            child: Row(
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsets.only(right: 8),
-                                  child: FilterChip(
-                                    label: const Text('All Categories'),
-                                    selected: _selectedCategoryFilter == null,
-                                    selectedColor: AppColors.primaryRed,
-                                    labelStyle: TextStyle(
-                                      color: _selectedCategoryFilter == null
-                                          ? Colors.white
-                                          : AppColors.textDark,
-                                      fontWeight: _selectedCategoryFilter == null
-                                          ? FontWeight.bold
-                                          : FontWeight.normal,
-                                      fontSize: 12,
-                                    ),
-                                    onSelected: (_) =>
-                                        setState(() => _selectedCategoryFilter = null),
-                                  ),
-                                ),
-                                ...categories.map((cat) {
-                                  final isSelected = _selectedCategoryFilter == cat.id;
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Row(
+                                children: catList.map((cat) {
+                                  final isSelected = effectiveCatId == cat.id;
                                   return Padding(
                                     padding: const EdgeInsets.only(right: 8),
                                     child: FilterChip(
+                                      showCheckmark: false,
+                                      avatar: Icon(
+                                        Icons.fastfood,
+                                        size: 14,
+                                        color: isSelected ? Colors.white : AppColors.primaryRed,
+                                      ),
                                       label: Text(cat.name),
                                       selected: isSelected,
                                       selectedColor: AppColors.primaryRed,
+                                      backgroundColor: Colors.white,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(20),
+                                        side: BorderSide(
+                                          color: isSelected ? AppColors.primaryRed : AppColors.borderGrey,
+                                        ),
+                                      ),
                                       labelStyle: TextStyle(
-                                        color: isSelected
-                                            ? Colors.white
-                                            : AppColors.textDark,
-                                        fontWeight: isSelected
-                                            ? FontWeight.bold
-                                            : FontWeight.normal,
+                                        color: isSelected ? Colors.white : AppColors.textDark,
+                                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                                         fontSize: 12,
                                       ),
                                       onSelected: (_) =>
                                           setState(() => _selectedCategoryFilter = cat.id),
                                     ),
                                   );
-                                }),
-                              ],
+                                }).toList(),
+                              ),
                             ),
                           );
                         },
                         loading: () => const LinearProgressIndicator(),
                         error: (_, _) => const SizedBox(),
                       ),
-                      const Divider(height: 1),
 
                       // Filtered Products Grid
                       Expanded(
                         child: productsAsync.when(
                           data: (products) {
                             final filtered = products.where((p) {
-                              final matchCat = _selectedCategoryFilter == null ||
-                                  p.categoryId == _selectedCategoryFilter;
+                              final matchCat = effectiveCatId == null ||
+                                  p.categoryId == effectiveCatId;
                               return matchCat && p.isAvailable;
                             }).toList();
 
                             if (filtered.isEmpty) {
-                              return const Center(
+                              return Center(
                                 child: Padding(
-                                  padding: EdgeInsets.all(16.0),
-                                  child: Text(
-                                    'No active menu items found for this category filter.\nAdd items in the Menu section first.',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(color: AppColors.textMuted, fontSize: 13),
+                                  padding: const EdgeInsets.all(20.0),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(14),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.lightRed.withAlpha(40),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(Icons.lunch_dining_outlined,
+                                            size: 36, color: AppColors.primaryRed),
+                                      ),
+                                      const SizedBox(height: 12),
+                                      const Text(
+                                        'No items in this category',
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
+                                            color: AppColors.textDark),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      const Text(
+                                        'Select another category or add items in the Menu section.',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               );
@@ -1058,62 +927,141 @@ class _NewOrderDialogState extends ConsumerState<NewOrderDialog> {
                               padding: const EdgeInsets.all(12),
                               gridDelegate:
                                   const SliverGridDelegateWithMaxCrossAxisExtent(
-                                maxCrossAxisExtent: 180,
+                                maxCrossAxisExtent: 210,
                                 crossAxisSpacing: 10,
                                 mainAxisSpacing: 10,
-                                childAspectRatio: 1.15,
+                                childAspectRatio: 1.05,
                               ),
                               itemCount: filtered.length,
                               itemBuilder: (context, index) {
                                 final product = filtered[index];
-                                return InkWell(
-                                  borderRadius: BorderRadius.circular(10),
-                                  onTap: () => _selectProductSizeAndAdd(product),
-                                  child: Container(
-                                    padding: const EdgeInsets.all(10),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.lightGrey.withAlpha(120),
-                                      borderRadius: BorderRadius.circular(10),
-                                      border: Border.all(color: AppColors.borderGrey),
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          product.name,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 12.5,
-                                            color: AppColors.textDark,
-                                          ),
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Text(
-                                              CurrencyFormatter.format(
-                                                  product.basePrice),
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 11.5,
-                                                color: AppColors.primaryRed,
+                                return Card(
+                                  elevation: 1.5,
+                                  shadowColor: Colors.black.withAlpha(15),
+                                  clipBehavior: Clip.antiAlias,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    side: BorderSide(color: AppColors.borderGrey.withAlpha(150)),
+                                  ),
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(12),
+                                    onTap: () => _selectProductSizeAndAdd(product),
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(10),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Row(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Container(
+                                                width: 32,
+                                                height: 32,
+                                                decoration: BoxDecoration(
+                                                  color: AppColors.lightRed.withAlpha(50),
+                                                  borderRadius: BorderRadius.circular(8),
+                                                ),
+                                                child: const Icon(
+                                                  Icons.fastfood,
+                                                  size: 16,
+                                                  color: AppColors.primaryRed,
+                                                ),
                                               ),
+                                              if (product.sizes.length > 1)
+                                                Container(
+                                                  padding: const EdgeInsets.symmetric(
+                                                      horizontal: 6, vertical: 2),
+                                                  decoration: BoxDecoration(
+                                                    color: AppColors.lightYellow,
+                                                    borderRadius: BorderRadius.circular(6),
+                                                  ),
+                                                  child: Text(
+                                                    '${product.sizes.length} Sizes',
+                                                    style: const TextStyle(
+                                                      fontSize: 9.5,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: AppColors.cheeseYellow,
+                                                    ),
+                                                  ),
+                                                ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Text(
+                                                  product.name,
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 12.5,
+                                                    color: AppColors.textDark,
+                                                  ),
+                                                  maxLines: 2,
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
+                                                if (product.description.isNotEmpty) ...[
+                                                  const SizedBox(height: 2),
+                                                  Text(
+                                                    product.description,
+                                                    style: const TextStyle(
+                                                      fontSize: 10,
+                                                      color: AppColors.textMuted,
+                                                    ),
+                                                    maxLines: 1,
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                ],
+                                              ],
                                             ),
-                                            const CircleAvatar(
-                                              radius: 11,
-                                              backgroundColor:
-                                                  AppColors.primaryRed,
-                                              child: Icon(Icons.add,
-                                                  size: 13, color: Colors.white),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
+                                          ),
+                                          Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Text(
+                                                CurrencyFormatter.format(
+                                                    product.basePrice),
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 12,
+                                                  color: AppColors.primaryRed,
+                                                ),
+                                              ),
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(
+                                                    horizontal: 8, vertical: 3),
+                                                decoration: BoxDecoration(
+                                                  color: AppColors.primaryRed,
+                                                  borderRadius: BorderRadius.circular(14),
+                                                ),
+                                                child: Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: const [
+                                                    Icon(Icons.add,
+                                                        size: 12, color: Colors.white),
+                                                    SizedBox(width: 2),
+                                                    Text(
+                                                      'Add',
+                                                      style: TextStyle(
+                                                        color: Colors.white,
+                                                        fontSize: 10.5,
+                                                        fontWeight: FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 );
@@ -1131,41 +1079,68 @@ class _NewOrderDialogState extends ConsumerState<NewOrderDialog> {
 
                   final orderSidebar = Container(
                     padding: const EdgeInsets.all(14),
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       color: Colors.white,
                       border: Border(
-                        left: BorderSide(color: AppColors.borderGrey),
+                        left: BorderSide(
+                          color: isWide ? AppColors.borderGrey.withAlpha(150) : Colors.transparent,
+                        ),
+                        top: BorderSide(
+                          color: !isWide ? AppColors.borderGrey.withAlpha(150) : Colors.transparent,
+                        ),
                       ),
                     ),
                     child: SingleChildScrollView(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Current Order Checkout',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textDark,
-                            ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Current Order Checkout',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textDark,
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: AppColors.lightRed.withAlpha(50),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  '${_cartItems.length} items',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.primaryRed,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 6),
+                          const SizedBox(height: 8),
 
                           // Customer Name (Optional) field
                           TextField(
                             controller: _customerNameController,
                             decoration: const InputDecoration(
                               labelText: 'Customer Name (Optional)',
+                              prefixIcon: Icon(Icons.person_outline, size: 18),
                               isDense: true,
                             ),
                           ),
-                          const SizedBox(height: 6),
+                          const SizedBox(height: 8),
 
                           // Order Type selector
                           DropdownButtonFormField<OrderType>(
                             initialValue: _orderType,
                             decoration: const InputDecoration(
                               labelText: 'Order Type',
+                              prefixIcon: Icon(Icons.room_service_outlined, size: 18),
                               isDense: true,
                             ),
                             items: OrderType.values.map((type) {
@@ -1178,9 +1153,51 @@ class _NewOrderDialogState extends ConsumerState<NewOrderDialog> {
                               if (val != null) setState(() => _orderType = val);
                             },
                           ),
-                          const SizedBox(height: 6),
+                          const SizedBox(height: 8),
 
-                          // Additional / Extra Charges (Reason required if amount > 0)
+                          // Discount Percentage & Quick Chips
+                          TextField(
+                            controller: _discountPercentController,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              labelText: 'Discount %',
+                              hintText: '0',
+                              prefixIcon: Icon(Icons.discount_outlined, size: 18),
+                              suffixText: '%',
+                              isDense: true,
+                            ),
+                            onChanged: (_) => setState(() {}),
+                          ),
+                          const SizedBox(height: 4),
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: [0, 5, 10, 15, 20, 25].map((pct) {
+                                final isSelected = _discountPercentage == pct.toDouble();
+                                return Padding(
+                                  padding: const EdgeInsets.only(right: 4),
+                                  child: ChoiceChip(
+                                    label: Text('$pct%'),
+                                    selected: isSelected,
+                                    selectedColor: AppColors.primaryRed,
+                                    labelStyle: TextStyle(
+                                      color: isSelected ? Colors.white : AppColors.textDark,
+                                      fontSize: 10,
+                                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                    ),
+                                    onSelected: (_) {
+                                      setState(() {
+                                        _discountPercentController.text = pct.toString();
+                                      });
+                                    },
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+
+                          // Additional / Extra Charges
                           Row(
                             children: [
                               Expanded(
@@ -1188,8 +1205,8 @@ class _NewOrderDialogState extends ConsumerState<NewOrderDialog> {
                                 child: TextField(
                                   controller: _extraChargesNoteController,
                                   decoration: const InputDecoration(
-                                    labelText: 'Extra Charges Reason *',
-                                    hintText: 'e.g. Delivery / Parcel',
+                                    labelText: 'Extra Reason',
+                                    hintText: 'Delivery / Parcel',
                                     isDense: true,
                                   ),
                                 ),
@@ -1211,20 +1228,27 @@ class _NewOrderDialogState extends ConsumerState<NewOrderDialog> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 10),
 
                           // Cart Items List
-                          const Text('Cart Items:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                          const Text('Cart Items:',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                           const SizedBox(height: 4),
                           if (_cartItems.isEmpty)
-                            const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 12),
-                              child: Center(
-                                child: Text(
-                                  'Select items from menu.\nLong-press item in cart to remove.',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(color: AppColors.textMuted, fontSize: 11),
-                                ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(vertical: 18),
+                              alignment: Alignment.center,
+                              child: Column(
+                                children: const [
+                                  Icon(Icons.shopping_cart_outlined,
+                                      size: 26, color: AppColors.textMuted),
+                                  SizedBox(height: 4),
+                                  Text(
+                                    'Cart is empty.\nTap any item from the menu to add.',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(color: AppColors.textMuted, fontSize: 11),
+                                  ),
+                                ],
                               ),
                             )
                           else
@@ -1232,74 +1256,157 @@ class _NewOrderDialogState extends ConsumerState<NewOrderDialog> {
                               shrinkWrap: true,
                               physics: const NeverScrollableScrollPhysics(),
                               itemCount: _cartItems.length,
-                              separatorBuilder: (_, _) => const Divider(height: 4),
-                              itemBuilder: (context, index) {
+                              separatorBuilder: (_, _) => const SizedBox(height: 6),
+                              itemBuilder: (_, index) {
                                 final cartItem = _cartItems[index];
-                                return GestureDetector(
-                                  onLongPress: () {
-                                    setState(() => _cartItems.removeAt(index));
-                                  },
-                                  child: Container(
-                                    padding: const EdgeInsets.all(4),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.lightGrey.withAlpha(50),
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            '${cartItem.quantity}x ${cartItem.displayName}',
-                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11.5),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.lightGrey.withAlpha(60),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                        color: AppColors.borderGrey.withAlpha(128)),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              cartItem.displayName,
+                                              style: const TextStyle(
+                                                  fontWeight: FontWeight.bold, fontSize: 11.5),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            Text(
+                                              CurrencyFormatter.format(cartItem.unitPrice),
+                                              style: const TextStyle(
+                                                  fontSize: 10, color: AppColors.textMuted),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      // Quantity adjustment stepper
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          InkWell(
+                                            borderRadius: BorderRadius.circular(4),
+                                            onTap: () {
+                                              setState(() {
+                                                if (cartItem.quantity > 1) {
+                                                  _cartItems[index] = cartItem.copyWith(
+                                                      quantity: cartItem.quantity - 1);
+                                                } else {
+                                                  _cartItems.removeAt(index);
+                                                }
+                                              });
+                                            },
+                                            child: Container(
+                                              padding: const EdgeInsets.all(3),
+                                              decoration: BoxDecoration(
+                                                color: Colors.grey.shade200,
+                                                borderRadius: BorderRadius.circular(4),
+                                              ),
+                                              child: Icon(
+                                                cartItem.quantity > 1
+                                                    ? Icons.remove
+                                                    : Icons.delete_outline,
+                                                size: 13,
+                                                color: cartItem.quantity > 1
+                                                    ? AppColors.textDark
+                                                    : AppColors.danger,
+                                              ),
+                                            ),
                                           ),
+                                          Padding(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                                            child: Text(
+                                              '${cartItem.quantity}',
+                                              style: const TextStyle(
+                                                  fontWeight: FontWeight.bold, fontSize: 12),
+                                            ),
+                                          ),
+                                          InkWell(
+                                            borderRadius: BorderRadius.circular(4),
+                                            onTap: () {
+                                              setState(() {
+                                                _cartItems[index] = cartItem.copyWith(
+                                                    quantity: cartItem.quantity + 1);
+                                              });
+                                            },
+                                            child: Container(
+                                              padding: const EdgeInsets.all(3),
+                                              decoration: BoxDecoration(
+                                                color: AppColors.primaryRed,
+                                                borderRadius: BorderRadius.circular(4),
+                                              ),
+                                              child: const Icon(
+                                                Icons.add,
+                                                size: 13,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        CurrencyFormatter.format(cartItem.totalPrice),
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 11.5,
+                                          color: AppColors.primaryRed,
                                         ),
-                                        Text(
-                                          CurrencyFormatter.format(cartItem.totalPrice),
-                                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11.5, color: AppColors.primaryRed),
-                                        ),
-                                      ],
-                                    ),
+                                      ),
+                                    ],
                                   ),
                                 );
                               },
                             ),
-                          const Divider(height: 12),
+                          const Divider(height: 16),
 
-                          // Totals & Buttons
+                          // Totals & Pricing Breakdown
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               const Text('Subtotal:', style: TextStyle(fontSize: 11.5)),
-                              Text(CurrencyFormatter.format(_subtotal), style: const TextStyle(fontSize: 11.5)),
+                              Text(CurrencyFormatter.format(_subtotal),
+                                  style: const TextStyle(fontSize: 11.5)),
                             ],
                           ),
-                          if (_extraCharges > 0)
-                            Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 1.5),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      '${_extraChargesNoteController.text.trim().isNotEmpty ? _extraChargesNoteController.text.trim() : "Extra Charges"}:',
-                                      style: const TextStyle(fontSize: 11.5),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text('+ ${CurrencyFormatter.format(_extraCharges)}',
-                                      style: const TextStyle(fontSize: 11.5)),
-                                ],
-                              ),
+                          if (_discountAmount > 0)
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text('Discount (${_discountPercentage.toStringAsFixed(0)}%):',
+                                    style: const TextStyle(
+                                        fontSize: 11.5, color: AppColors.danger)),
+                                Text('- ${CurrencyFormatter.format(_discountAmount)}',
+                                    style: const TextStyle(
+                                        fontSize: 11.5, color: AppColors.danger)),
+                              ],
                             ),
-                          const SizedBox(height: 2),
+                          if (_extraCharges > 0)
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                    '${_extraChargesNoteController.text.trim().isNotEmpty ? _extraChargesNoteController.text.trim() : "Extra Charges"}:',
+                                    style: const TextStyle(fontSize: 11.5)),
+                                Text('+ ${CurrencyFormatter.format(_extraCharges)}',
+                                    style: const TextStyle(fontSize: 11.5)),
+                              ],
+                            ),
+                          const SizedBox(height: 4),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               const Text('Total Bill:',
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.bold, fontSize: 14)),
+                                  style:
+                                      TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                               Text(
                                 CurrencyFormatter.format(_totalBill),
                                 style: const TextStyle(
@@ -1310,22 +1417,28 @@ class _NewOrderDialogState extends ConsumerState<NewOrderDialog> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 10),
+                          const SizedBox(height: 12),
 
-                          // Two Checkout Buttons
+                          // Checkout Buttons
                           Row(
                             children: [
                               Expanded(
-                                child: OutlinedButton(
+                                child: OutlinedButton.icon(
                                   style: OutlinedButton.styleFrom(
                                     padding: const EdgeInsets.symmetric(vertical: 8),
+                                    side: const BorderSide(color: AppColors.primaryRed),
                                     visualDensity: VisualDensity.compact,
                                   ),
+                                  icon: const Icon(Icons.check_circle_outline,
+                                      size: 14, color: AppColors.primaryRed),
                                   onPressed: _cartItems.isEmpty
                                       ? null
                                       : () => _submitOrder(printSlip: false),
-                                  child: const Text('Place Order',
-                                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                                  label: const Text('Place Order',
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 11,
+                                          color: AppColors.primaryRed)),
                                 ),
                               ),
                               const SizedBox(width: 6),
@@ -1333,6 +1446,7 @@ class _NewOrderDialogState extends ConsumerState<NewOrderDialog> {
                                 child: ElevatedButton.icon(
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: AppColors.primaryRed,
+                                    foregroundColor: Colors.white,
                                     padding: const EdgeInsets.symmetric(vertical: 8),
                                     visualDensity: VisualDensity.compact,
                                   ),
@@ -1341,7 +1455,8 @@ class _NewOrderDialogState extends ConsumerState<NewOrderDialog> {
                                       ? null
                                       : () => _submitOrder(printSlip: true),
                                   label: const Text('Place & Print',
-                                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold, fontSize: 11)),
                                 ),
                               ),
                             ],

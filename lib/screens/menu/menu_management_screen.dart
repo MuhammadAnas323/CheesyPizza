@@ -123,6 +123,122 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen> {
     );
   }
 
+  void _showProductActionSheet(ProductModel product) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(top: 4, bottom: 12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: AppColors.lightRed,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.fastfood, color: AppColors.primaryRed, size: 22),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            product.name,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textDark,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            product.sizes.isNotEmpty
+                                ? '${product.sizes.length} size option(s)'
+                                : CurrencyFormatter.format(product.basePrice),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textMuted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 16),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withAlpha(25),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.edit, color: Colors.blue, size: 20),
+                ),
+                title: const Text(
+                  'Edit Menu Item',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14.5),
+                ),
+                subtitle: const Text(
+                  'Update item name, description, sizes and prices',
+                  style: TextStyle(fontSize: 11.5, color: AppColors.textMuted),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _openEditProduct(product);
+                },
+              ),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.danger.withAlpha(25),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.delete_outline, color: AppColors.danger, size: 20),
+                ),
+                title: const Text(
+                  'Delete Menu Item',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14.5, color: AppColors.danger),
+                ),
+                subtitle: const Text(
+                  'Remove this item from the cafe menu',
+                  style: TextStyle(fontSize: 11.5, color: AppColors.textMuted),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _confirmDeleteProduct(product);
+                },
+              ),
+              const SizedBox(height: 6),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final categoriesAsync = ref.watch(categoryNotifierProvider);
@@ -158,7 +274,7 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen> {
                           ),
                           SizedBox(height: 4),
                           Text(
-                            'Manage categories as filters and add items to your menu (Long-press any item to delete)',
+                            'Manage categories and menu items (Long-press any item to edit or delete)',
                             style: TextStyle(fontSize: 12, color: AppColors.textMuted),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -312,26 +428,35 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen> {
                           return Card(
                             margin: const EdgeInsets.only(bottom: 12),
                             elevation: 1.5,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shadowColor: Colors.black.withAlpha(20),
+                            clipBehavior: Clip.antiAlias,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              side: BorderSide(color: AppColors.borderGrey.withAlpha(150)),
+                            ),
                             child: InkWell(
-                              borderRadius: BorderRadius.circular(12),
-                              onLongPress: () => _confirmDeleteProduct(product),
+                              borderRadius: BorderRadius.circular(14),
+                              onLongPress: () => _showProductActionSheet(product),
                               child: Padding(
-                                padding: EdgeInsets.all(isMobile ? 10 : 14),
+                                padding: EdgeInsets.all(isMobile ? 12 : 16),
                                 child: Row(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Container(
-                                      width: isMobile ? 36 : 42,
-                                      height: isMobile ? 36 : 42,
+                                      width: isMobile ? 42 : 48,
+                                      height: isMobile ? 42 : 48,
                                       decoration: BoxDecoration(
-                                        color: AppColors.lightRed,
-                                        borderRadius: BorderRadius.circular(8),
+                                        color: AppColors.lightRed.withAlpha(60),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: AppColors.primaryRed.withAlpha(30)),
                                       ),
-                                      child: Icon(Icons.fastfood,
-                                          color: AppColors.primaryRed, size: isMobile ? 18 : 20),
+                                      child: Icon(
+                                        Icons.restaurant_menu,
+                                        color: AppColors.primaryRed,
+                                        size: isMobile ? 20 : 24,
+                                      ),
                                     ),
-                                    const SizedBox(width: 12),
+                                    const SizedBox(width: 14),
                                     Expanded(
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -342,7 +467,7 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen> {
                                                 child: Text(
                                                   product.name,
                                                   style: TextStyle(
-                                                    fontSize: isMobile ? 13.5 : 15,
+                                                    fontSize: isMobile ? 14 : 15.5,
                                                     fontWeight: FontWeight.bold,
                                                     color: AppColors.textDark,
                                                   ),
@@ -350,66 +475,80 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen> {
                                               ),
                                               if (catName.isNotEmpty) ...[
                                                 Container(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                                   decoration: BoxDecoration(
-                                                    color: AppColors.lightGrey,
-                                                    borderRadius: BorderRadius.circular(4),
+                                                    color: AppColors.lightRed.withAlpha(35),
+                                                    borderRadius: BorderRadius.circular(6),
                                                   ),
                                                   child: Text(
                                                     catName,
-                                                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.mediumGrey),
+                                                    style: const TextStyle(
+                                                      fontSize: 10.5,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: AppColors.primaryRed,
+                                                    ),
                                                   ),
                                                 ),
                                               ],
                                             ],
                                           ),
                                           if (product.description.isNotEmpty) ...[
-                                            const SizedBox(height: 2),
+                                            const SizedBox(height: 4),
                                             Text(
                                               product.description,
                                               style: const TextStyle(
-                                                fontSize: 11.5,
+                                                fontSize: 12,
                                                 color: AppColors.textMuted,
+                                                height: 1.25,
                                               ),
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
                                             ),
                                           ],
-                                          const SizedBox(height: 6),
+                                          const SizedBox(height: 8),
                                           Wrap(
                                             spacing: 6,
                                             runSpacing: 4,
                                             children: product.sizes.map((s) {
+                                              final hasName = s.name.trim().isNotEmpty;
                                               return Container(
                                                 padding: const EdgeInsets.symmetric(
-                                                    horizontal: 6, vertical: 2),
+                                                    horizontal: 8, vertical: 3),
                                                 decoration: BoxDecoration(
-                                                  color: AppColors.lightYellow,
-                                                  borderRadius: BorderRadius.circular(4),
-                                                ),
-                                                child: Text(
-                                                  '${s.name}: ${CurrencyFormatter.format(s.price)}',
-                                                  style: const TextStyle(
-                                                    fontSize: 11,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: AppColors.textDark,
+                                                  color: AppColors.lightYellow.withAlpha(150),
+                                                  borderRadius: BorderRadius.circular(6),
+                                                  border: Border.all(
+                                                    color: AppColors.cheeseYellow.withAlpha(75),
                                                   ),
+                                                ),
+                                                child: Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    if (hasName) ...[
+                                                      Text(
+                                                        '${s.name}: ',
+                                                        style: const TextStyle(
+                                                          fontSize: 11,
+                                                          fontWeight: FontWeight.w600,
+                                                          color: AppColors.textDark,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                    Text(
+                                                      CurrencyFormatter.format(s.price),
+                                                      style: const TextStyle(
+                                                        fontSize: 11.5,
+                                                        fontWeight: FontWeight.bold,
+                                                        color: AppColors.primaryRed,
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
                                               );
                                             }).toList(),
                                           ),
                                         ],
                                       ),
-                                    ),
-                                    Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        IconButton(
-                                          icon: const Icon(Icons.edit, size: 16, color: Colors.blue),
-                                          constraints: const BoxConstraints(),
-                                          padding: const EdgeInsets.all(6),
-                                          tooltip: 'Edit Item',
-                                          onPressed: () => _openEditProduct(product),
-                                        ),
-                                      ],
                                     ),
                                   ],
                                 ),
