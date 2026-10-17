@@ -516,38 +516,48 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen> {
                                             runSpacing: 4,
                                             children: product.sizes.map((s) {
                                               final hasName = s.name.trim().isNotEmpty;
-                                              return Container(
-                                                padding: const EdgeInsets.symmetric(
-                                                    horizontal: 8, vertical: 3),
-                                                decoration: BoxDecoration(
-                                                  color: AppColors.lightYellow.withAlpha(150),
-                                                  borderRadius: BorderRadius.circular(6),
-                                                  border: Border.all(
-                                                    color: AppColors.cheeseYellow.withAlpha(75),
+                                              final priceStr = CurrencyFormatter.format(s.price);
+                                              return ConstrainedBox(
+                                                constraints: const BoxConstraints(maxWidth: 220),
+                                                child: Container(
+                                                  padding: const EdgeInsets.symmetric(
+                                                      horizontal: 8, vertical: 3),
+                                                  decoration: BoxDecoration(
+                                                    color: AppColors.lightYellow.withAlpha(150),
+                                                    borderRadius: BorderRadius.circular(6),
+                                                    border: Border.all(
+                                                      color: AppColors.cheeseYellow.withAlpha(75),
+                                                    ),
                                                   ),
-                                                ),
-                                                child: Row(
-                                                  mainAxisSize: MainAxisSize.min,
-                                                  children: [
-                                                    if (hasName) ...[
-                                                      Text(
-                                                        '${s.name}: ',
-                                                        style: const TextStyle(
-                                                          fontSize: 11,
-                                                          fontWeight: FontWeight.w600,
-                                                          color: AppColors.textDark,
+                                                  child: Row(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: [
+                                                      if (hasName) ...[
+                                                        Flexible(
+                                                          child: Text(
+                                                            '${s.name}: ',
+                                                            style: const TextStyle(
+                                                              fontSize: 11,
+                                                              fontWeight: FontWeight.w600,
+                                                              color: AppColors.textDark,
+                                                            ),
+                                                            overflow: TextOverflow.ellipsis,
+                                                            maxLines: 1,
+                                                          ),
                                                         ),
+                                                      ],
+                                                      Text(
+                                                        priceStr,
+                                                        style: const TextStyle(
+                                                          fontSize: 11.5,
+                                                          fontWeight: FontWeight.bold,
+                                                          color: AppColors.primaryRed,
+                                                        ),
+                                                        overflow: TextOverflow.ellipsis,
+                                                        maxLines: 1,
                                                       ),
                                                     ],
-                                                    Text(
-                                                      CurrencyFormatter.format(s.price),
-                                                      style: const TextStyle(
-                                                        fontSize: 11.5,
-                                                        fontWeight: FontWeight.bold,
-                                                        color: AppColors.primaryRed,
-                                                      ),
-                                                    ),
-                                                  ],
+                                                  ),
                                                 ),
                                               );
                                             }).toList(),
