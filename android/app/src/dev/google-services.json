@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "4163510426",
-    "project_id": "myapp-prod-id",
-    "storage_bucket": "myapp-prod-id.firebasestorage.app"
+    "project_number": "338792276553",
+    "project_id": "cheesypizza-2fc77",
+    "storage_bucket": "cheesypizza-2fc77.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:4163510426:android:e05d2c68b46a3a19b13f23",
+        "mobilesdk_app_id": "1:338792276553:android:a9257ee3b53e6b5501d598",
         "android_client_info": {
           "package_name": "com.cheesypizza.cheesy_pizza"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyD0zGg6oPjxMK0j_xbsHhZZh4nx0fKwcD0"
+          "current_key": "AIzaSyBsWWfWe91WzQk5fGgTkg2l23D4BRYi7Jo"
         }
       ],
       "services": {

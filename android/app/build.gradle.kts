@@ -28,6 +28,21 @@ android {
         versionName = flutter.versionName
     }
 
+    flavorDimensions += "default"
+
+    productFlavors {
+        create("dev") {
+            dimension = "default"
+            applicationId = "com.cheesypizza.cheesy_pizza"
+            resValue("string", "app_name", "Cheesy Pizza (Dev)")
+        }
+        create("prod") {
+            dimension = "default"
+            applicationId = "com.cheesypizza.cheesy_pizza"
+            resValue("string", "app_name", "Cheesy Pizza")
+        }
+    }
+
     buildTypes {
         release {
             // TODO: Add your own signing config for the release build.
