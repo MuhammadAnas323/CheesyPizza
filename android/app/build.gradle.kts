@@ -34,12 +34,10 @@ android {
         create("dev") {
             dimension = "default"
             applicationId = "com.cheesypizza.cheesy_pizza"
-            resValue("string", "app_name", "Cheesy Pizza (Dev)")
         }
         create("prod") {
             dimension = "default"
             applicationId = "com.cheesypizza.cheesy_pizza"
-            resValue("string", "app_name", "Cheesy Pizza")
         }
     }
 

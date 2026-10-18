@@ -1,0 +1,25 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Cheesy Pizza (Dev)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main_dev.dart",
+      "args": [
+        "--flavor",
+        "dev"
+      ]
+    },
+    {
+      "name": "Cheesy Pizza (Prod)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main_prod.dart",
+      "args": [
+        "--flavor",
+        "prod"
+      ]
+    }
+  ]
+}
