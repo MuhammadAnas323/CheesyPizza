@@ -9,8 +9,6 @@ import '../models/product_model.dart';
 import '../models/order_model.dart';
 import '../models/expense_model.dart';
 
-import '../firebase_options.dart';
-
 class FirebaseService {
   static final FirebaseService _instance = FirebaseService._internal();
   factory FirebaseService() => _instance;
@@ -38,7 +36,7 @@ class FirebaseService {
     return _initCompleter.future;
   }
 
-  Future<void> init() async {
+  Future<void> init({FirebaseOptions? options}) async {
     _isInitStarted = true;
     if (!_isPlatformSupported) {
       dev.log(
@@ -53,15 +51,15 @@ class FirebaseService {
       if (Firebase.apps.isNotEmpty) {
         _isInitialized = true;
         _firestore = FirebaseFirestore.instance;
-        dev.log('Firebase already initialized.', name: 'FirebaseService');
-      } else {
+        dev.log('Firebase already initialized for project: ${Firebase.app().options.projectId}', name: 'FirebaseService');
+      } else if (options != null) {
         try {
           await Firebase.initializeApp(
-            options: DefaultFirebaseOptions.currentPlatform,
+            options: options,
           ).timeout(const Duration(seconds: 8));
           _isInitialized = true;
           _firestore = FirebaseFirestore.instance;
-          dev.log('Firebase initialized successfully for cheesypizza-2fc77.',
+          dev.log('Firebase initialized successfully for ${options.projectId}.',
               name: 'FirebaseService');
         } catch (e) {
           _isInitialized = false;
@@ -70,6 +68,10 @@ class FirebaseService {
               'Firebase initialization skipped or timed out (offline/local mode active): $e',
               name: 'FirebaseService');
         }
+      } else {
+        _isInitialized = false;
+        _firestore = null;
+        dev.log('Firebase options not provided and no app initialized.', name: 'FirebaseService');
       }
     } catch (e) {
       _isInitialized = false;

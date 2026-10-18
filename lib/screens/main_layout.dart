@@ -18,6 +18,22 @@ class MainLayout extends ConsumerStatefulWidget {
 class _MainLayoutState extends ConsumerState<MainLayout> {
   int _currentIndex = 0;
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkForUpdate();
+    });
+  }
+
+  Future<void> _checkForUpdate() async {
+    final updateService = ref.read(updateServiceProvider);
+    final updateInfo = await updateService.checkForUpdate();
+    if (updateInfo != null && mounted) {
+      await updateService.showUpdateDialog(context, updateInfo);
+    }
+  }
+
   void _navigateToIndex(int index) {
     setState(() => _currentIndex = index);
   }

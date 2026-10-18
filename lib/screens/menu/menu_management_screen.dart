@@ -19,7 +19,6 @@ class MenuManagementScreen extends ConsumerStatefulWidget {
 
 class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen> {
   String? _selectedCategoryId; // null means 'All'
-  String? _expandedProductId;  // tracks which card is expanded
 
   void _openAddCategory() async {
     final newCat = await showDialog<CategoryModel>(
@@ -30,7 +29,7 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen> {
       await ref.read(categoryNotifierProvider.notifier).saveCategory(newCat);
       if (mounted) {
         setState(() {
-          _selectedCategoryId = newCat.id;
+          _selectedCategoryId = newCat.id; // Automatically select newly added category
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -128,7 +127,7 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen> {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (ctx) => SafeArea(
         child: Padding(
@@ -137,102 +136,159 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 40,
+                width: 36,
                 height: 4,
-                margin: const EdgeInsets.only(top: 4, bottom: 12),
+                margin: const EdgeInsets.only(bottom: 12),
                 decoration: BoxDecoration(
                   color: Colors.grey.shade300,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: AppColors.lightRed,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(Icons.fastfood, color: AppColors.primaryRed, size: 22),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            product.name,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textDark,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            product.sizes.isNotEmpty
-                                ? '${product.sizes.length} size option(s)'
-                                : CurrencyFormatter.format(product.basePrice),
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: AppColors.textMuted,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                child: Text(
+                  product.name,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                 ),
               ),
-              const Divider(height: 16),
+              const Divider(),
               ListTile(
-                leading: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.withAlpha(25),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(Icons.edit, color: Colors.blue, size: 20),
+                leading: const CircleAvatar(
+                  backgroundColor: AppColors.lightRed,
+                  child: Icon(Icons.edit, color: AppColors.primaryRed, size: 20),
                 ),
-                title: const Text(
-                  'Edit Menu Item',
-                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14.5),
-                ),
-                subtitle: const Text(
-                  'Update item name, description, sizes and prices',
-                  style: TextStyle(fontSize: 11.5, color: AppColors.textMuted),
-                ),
+                title: const Text('Edit Item'),
                 onTap: () {
                   Navigator.pop(ctx);
                   _openEditProduct(product);
                 },
               ),
               ListTile(
-                leading: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppColors.danger.withAlpha(25),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+                leading: CircleAvatar(
+                  backgroundColor: AppColors.danger.withAlpha(25),
                   child: const Icon(Icons.delete_outline, color: AppColors.danger, size: 20),
                 ),
-                title: const Text(
-                  'Delete Menu Item',
-                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14.5, color: AppColors.danger),
-                ),
-                subtitle: const Text(
-                  'Remove this item from the cafe menu',
-                  style: TextStyle(fontSize: 11.5, color: AppColors.textMuted),
-                ),
+                title: const Text('Delete Item', style: TextStyle(color: AppColors.danger)),
                 onTap: () {
                   Navigator.pop(ctx);
                   _confirmDeleteProduct(product);
                 },
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 4),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _openEditCategory(CategoryModel cat) async {
+    final updatedCat = await showDialog<CategoryModel>(
+      context: context,
+      builder: (ctx) => CategoryFormDialog(categoryToEdit: cat),
+    );
+    if (updatedCat != null) {
+      await ref.read(categoryNotifierProvider.notifier).saveCategory(updatedCat);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Category "${updatedCat.name}" updated!'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    }
+  }
+
+  void _confirmDeleteCategory(CategoryModel cat) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Category?'),
+        content: Text(
+            'Are you sure you want to delete "${cat.name}"?\nAll items in this category will also be removed.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.danger),
+            onPressed: () async {
+              final catName = cat.name;
+              Navigator.pop(ctx);
+              await ref.read(categoryNotifierProvider.notifier).deleteCategory(cat.id);
+              if (mounted) {
+                if (_selectedCategoryId == cat.id) {
+                  setState(() => _selectedCategoryId = null);
+                }
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Category "$catName" deleted!'),
+                    backgroundColor: AppColors.mediumGrey,
+                  ),
+                );
+              }
+            },
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showCategoryActionSheet(CategoryModel cat) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 36,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                child: Text(
+                  cat.name,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                ),
+              ),
+              const Divider(),
+              ListTile(
+                leading: const CircleAvatar(
+                  backgroundColor: AppColors.lightRed,
+                  child: Icon(Icons.edit, color: AppColors.primaryRed, size: 20),
+                ),
+                title: const Text('Edit Category'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _openEditCategory(cat);
+                },
+              ),
+              ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: AppColors.danger.withAlpha(25),
+                  child: const Icon(Icons.delete_outline, color: AppColors.danger, size: 20),
+                ),
+                title: const Text('Delete Category', style: TextStyle(color: AppColors.danger)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _confirmDeleteCategory(cat);
+                },
+              ),
+              const SizedBox(height: 4),
             ],
           ),
         ),
@@ -255,7 +311,7 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header Row
+                // Header Row (Add Categories & Add Items buttons)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -275,7 +331,7 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen> {
                           ),
                           SizedBox(height: 4),
                           Text(
-                            'Tap card to expand details • Long-press to edit or delete',
+                            'Manage categories as filters and add items to your menu (Tap card to expand details • Long-press to delete)',
                             style: TextStyle(fontSize: 12, color: AppColors.textMuted),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -345,20 +401,23 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen> {
                             final isSelected = _selectedCategoryId == cat.id;
                             return Padding(
                               padding: const EdgeInsets.only(right: 8),
-                              child: FilterChip(
-                                label: Text(cat.name),
-                                selected: isSelected,
-                                selectedColor: AppColors.primaryRed,
-                                labelStyle: TextStyle(
-                                  color: isSelected
-                                      ? Colors.white
-                                      : AppColors.textDark,
-                                  fontWeight: isSelected
-                                      ? FontWeight.bold
-                                      : FontWeight.normal,
-                                  fontSize: 12.5,
+                              child: GestureDetector(
+                                onLongPress: () => _showCategoryActionSheet(cat),
+                                child: FilterChip(
+                                  label: Text(cat.name),
+                                  selected: isSelected,
+                                  selectedColor: AppColors.primaryRed,
+                                  labelStyle: TextStyle(
+                                    color: isSelected
+                                        ? Colors.white
+                                        : AppColors.textDark,
+                                    fontWeight: isSelected
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                    fontSize: 12.5,
+                                  ),
+                                  onSelected: (_) => setState(() => _selectedCategoryId = cat.id),
                                 ),
-                                onSelected: (_) => setState(() => _selectedCategoryId = cat.id),
                               ),
                             );
                           }),
@@ -371,7 +430,7 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // Products List
+                // Products List filtered by selected category chip
                 Expanded(
                   child: productsAsync.when(
                     data: (products) {
@@ -415,10 +474,8 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen> {
 
                       return ListView.builder(
                         itemCount: filtered.length,
-                        itemBuilder: (context, index) {
+                        itemBuilder: (_, index) {
                           final product = filtered[index];
-                          final isExpanded = _expandedProductId == product.id;
-
                           final catName = categoriesAsync.maybeWhen(
                             data: (cats) => cats
                                 .firstWhere((c) => c.id == product.categoryId,
@@ -428,16 +485,151 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen> {
                             orElse: () => '',
                           );
 
-                          return _MenuItemCard(
-                            product: product,
-                            catName: catName,
-                            isMobile: isMobile,
-                            isExpanded: isExpanded,
-                            onTap: () => setState(() {
-                              _expandedProductId =
-                                  isExpanded ? null : product.id;
-                            }),
-                            onLongPress: () => _showProductActionSheet(product),
+                          final productSizes = product.sizes.isNotEmpty
+                              ? product.sizes
+                              : [ProductSize(name: 'Regular', price: product.basePrice, costPrice: 0)];
+
+                          return Card(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            elevation: 1.5,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(12),
+                              onLongPress: () => _showProductActionSheet(product),
+                              child: ExpansionTile(
+                                shape: const RoundedRectangleBorder(side: BorderSide.none),
+                                collapsedShape: const RoundedRectangleBorder(side: BorderSide.none),
+                                leading: Container(
+                                  width: isMobile ? 36 : 42,
+                                  height: isMobile ? 36 : 42,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.lightRed,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Icon(Icons.fastfood,
+                                      color: AppColors.primaryRed, size: isMobile ? 18 : 20),
+                                ),
+                                title: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        product.name,
+                                        style: TextStyle(
+                                          fontSize: isMobile ? 13.5 : 15,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.textDark,
+                                        ),
+                                      ),
+                                    ),
+                                    if (catName.isNotEmpty) ...[
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.lightGrey,
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        child: Text(
+                                          catName,
+                                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.mediumGrey),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (product.description.isNotEmpty) ...[
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        product.description,
+                                        style: const TextStyle(
+                                          fontSize: 11.5,
+                                          color: AppColors.textMuted,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                    const SizedBox(height: 4),
+                                    Wrap(
+                                      spacing: 6,
+                                      runSpacing: 4,
+                                      children: productSizes.map((s) {
+                                        final sizeLabel = s.name.trim().isNotEmpty ? s.name : 'Regular';
+                                        return Container(
+                                          constraints: BoxConstraints(maxWidth: isMobile ? 180 : 260),
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.lightYellow,
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          child: Text(
+                                            '$sizeLabel: ${CurrencyFormatter.format(s.price)}',
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                              color: AppColors.textDark,
+                                            ),
+                                          ),
+                                        );
+                                      }).toList(),
+                                    ),
+                                  ],
+                                ),
+                                trailing: null,
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const Divider(),
+                                        const Text(
+                                          'Item Details & Sizes Breakdown:',
+                                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5, color: AppColors.textDark),
+                                        ),
+                                        const SizedBox(height: 6),
+                                        if (product.description.isNotEmpty) ...[
+                                          Text(
+                                            'Description: ${product.description}',
+                                            style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                                          ),
+                                          const SizedBox(height: 6),
+                                        ],
+                                        ...productSizes.map((s) {
+                                          final sizeLabel = s.name.trim().isNotEmpty ? s.name : 'Regular';
+                                          return Padding(
+                                            padding: const EdgeInsets.symmetric(vertical: 3),
+                                            child: Row(
+                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                              children: [
+                                                Expanded(
+                                                  child: Text(
+                                                    'Size: $sizeLabel',
+                                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                                                    maxLines: 2,
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Text(
+                                                  'Price: ${CurrencyFormatter.format(s.price)}',
+                                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primaryRed),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                        }),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           );
                         },
                       );
@@ -451,343 +643,6 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen> {
           );
         },
       ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Extracted card widget with animated expand/collapse
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _MenuItemCard extends StatelessWidget {
-  const _MenuItemCard({
-    required this.product,
-    required this.catName,
-    required this.isMobile,
-    required this.isExpanded,
-    required this.onTap,
-    required this.onLongPress,
-  });
-
-  final ProductModel product;
-  final String catName;
-  final bool isMobile;
-  final bool isExpanded;
-  final VoidCallback onTap;
-  final VoidCallback onLongPress;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      elevation: isExpanded ? 3 : 1.5,
-      shadowColor: Colors.black.withAlpha(isExpanded ? 35 : 20),
-      clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: BorderSide(
-          color: isExpanded
-              ? AppColors.primaryRed.withAlpha(120)
-              : AppColors.borderGrey.withAlpha(150),
-          width: isExpanded ? 1.4 : 1,
-        ),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: onTap,
-        onLongPress: onLongPress,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── Collapsed header row ──────────────────────────────────────
-            Padding(
-              padding: EdgeInsets.all(isMobile ? 12 : 16),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // Icon
-                  Container(
-                    width: isMobile ? 42 : 48,
-                    height: isMobile ? 42 : 48,
-                    decoration: BoxDecoration(
-                      color: isExpanded
-                          ? AppColors.primaryRed.withAlpha(20)
-                          : AppColors.lightRed.withAlpha(60),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                          color: AppColors.primaryRed.withAlpha(isExpanded ? 80 : 30)),
-                    ),
-                    child: Icon(
-                      Icons.restaurant_menu,
-                      color: AppColors.primaryRed,
-                      size: isMobile ? 20 : 24,
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-
-                  // Name + category badge
-                  Expanded(
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            product.name,
-                            style: TextStyle(
-                              fontSize: isMobile ? 14 : 15.5,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textDark,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (catName.isNotEmpty) ...[
-                          const SizedBox(width: 6),
-                          Flexible(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: AppColors.lightRed.withAlpha(35),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                catName,
-                                style: const TextStyle(
-                                  fontSize: 10.5,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.primaryRed,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-
-                  // Expand/collapse chevron
-                  const SizedBox(width: 8),
-                  AnimatedRotation(
-                    turns: isExpanded ? 0.5 : 0,
-                    duration: const Duration(milliseconds: 250),
-                    child: Icon(
-                      Icons.keyboard_arrow_down_rounded,
-                      color: isExpanded ? AppColors.primaryRed : AppColors.textMuted,
-                      size: 22,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // ── Animated expanded detail panel ────────────────────────────
-            AnimatedCrossFade(
-              duration: const Duration(milliseconds: 250),
-              crossFadeState: isExpanded
-                  ? CrossFadeState.showSecond
-                  : CrossFadeState.showFirst,
-              firstChild: const SizedBox(width: double.infinity),
-              secondChild: _ExpandedDetail(
-                product: product,
-                catName: catName,
-                isMobile: isMobile,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Expanded detail panel content
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _ExpandedDetail extends StatelessWidget {
-  const _ExpandedDetail({
-    required this.product,
-    required this.catName,
-    required this.isMobile,
-  });
-
-  final ProductModel product;
-  final String catName;
-  final bool isMobile;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: AppColors.lightRed.withAlpha(10),
-        border: Border(
-          top: BorderSide(color: AppColors.primaryRed.withAlpha(40)),
-        ),
-      ),
-      padding: EdgeInsets.fromLTRB(
-        isMobile ? 14 : 18,
-        12,
-        isMobile ? 14 : 18,
-        14,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── Info rows ──────────────────────────────────────────────────
-          _DetailRow(
-            icon: Icons.category_outlined,
-            label: 'Category',
-            value: catName.isEmpty ? 'General' : catName,
-          ),
-
-          if (product.description.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            _DetailRow(
-              icon: Icons.notes_rounded,
-              label: 'Description',
-              value: product.description,
-              multiLine: true,
-            ),
-          ],
-
-          const SizedBox(height: 14),
-
-          // ── Size & price table ─────────────────────────────────────────
-          Row(
-            children: [
-              const Icon(Icons.local_offer_outlined,
-                  size: 14, color: AppColors.primaryRed),
-              const SizedBox(width: 6),
-              Text(
-                product.sizes.length == 1 ? 'Price' : 'Sizes & Prices',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primaryRed,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-
-          // Size chips — full overflow-safe version
-          Wrap(
-            spacing: 8,
-            runSpacing: 6,
-            children: product.sizes.map((s) {
-              final hasName = s.name.trim().isNotEmpty;
-              final priceStr = CurrencyFormatter.format(s.price);
-              return ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 260),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: AppColors.lightYellow.withAlpha(200),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                        color: AppColors.cheeseYellow.withAlpha(120)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (hasName) ...[
-                        Flexible(
-                          child: Text(
-                            s.name,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textDark,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
-                          ),
-                        ),
-                        Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 6),
-                          width: 1,
-                          height: 12,
-                          color: AppColors.borderGrey,
-                        ),
-                      ],
-                      Text(
-                        priceStr,
-                        style: const TextStyle(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primaryRed,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-
-          const SizedBox(height: 14),
-
-          // ── Actions row ────────────────────────────────────────────────
-          Row(
-            children: [
-              const Icon(Icons.touch_app_outlined,
-                  size: 12, color: AppColors.textMuted),
-              const SizedBox(width: 4),
-              const Text(
-                'Long-press the card to edit or delete',
-                style: TextStyle(fontSize: 11, color: AppColors.textMuted),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _DetailRow extends StatelessWidget {
-  const _DetailRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-    this.multiLine = false,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-  final bool multiLine;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment:
-          multiLine ? CrossAxisAlignment.start : CrossAxisAlignment.center,
-      children: [
-        Icon(icon, size: 14, color: AppColors.textMuted),
-        const SizedBox(width: 6),
-        Text(
-          '$label: ',
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textDark,
-          ),
-        ),
-        Expanded(
-          child: Text(
-            value,
-            style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
-            maxLines: multiLine ? 4 : 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
     );
   }
 }

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../../models/order_model.dart';
@@ -123,6 +123,7 @@ class _OrdersHistoryScreenState extends ConsumerState<OrdersHistoryScreen> {
                       items: [
                         const DropdownMenuItem(value: null, child: Text('All Statuses')),
                         const DropdownMenuItem(value: 'Pending', child: Text('Pending')),
+                        const DropdownMenuItem(value: 'On Table', child: Text('On Table')),
                         const DropdownMenuItem(value: 'Completed', child: Text('Completed')),
                         const DropdownMenuItem(value: 'Cancelled', child: Text('Cancelled')),
                       ],
@@ -187,6 +188,8 @@ class _OrdersHistoryScreenState extends ConsumerState<OrdersHistoryScreen> {
                         itemBuilder: (context, index) {
                           final order = filtered[index];
                           final isCompleted = order.status.toLowerCase() == 'completed';
+                          final isOnTable = order.status.toLowerCase() == 'on table';
+                          final isCancelled = order.status.toLowerCase() == 'cancelled';
 
                           return Card(
                             margin: const EdgeInsets.only(bottom: 10),
@@ -205,7 +208,11 @@ class _OrdersHistoryScreenState extends ConsumerState<OrdersHistoryScreen> {
                                                 radius: 16,
                                                 backgroundColor: isCompleted
                                                     ? AppColors.successLight
-                                                    : AppColors.lightRed,
+                                                    : (isOnTable
+                                                        ? Colors.blue.shade50
+                                                        : (isCancelled
+                                                            ? AppColors.danger.withAlpha(25)
+                                                            : AppColors.lightRed)),
                                                 child: Text(
                                                   order.orderNumber.replaceAll('#CP-', ''),
                                                   style: TextStyle(
@@ -213,7 +220,11 @@ class _OrdersHistoryScreenState extends ConsumerState<OrdersHistoryScreen> {
                                                     fontSize: 10,
                                                     color: isCompleted
                                                         ? AppColors.success
-                                                        : AppColors.primaryRed,
+                                                        : (isOnTable
+                                                            ? Colors.blue
+                                                            : (isCancelled
+                                                                ? AppColors.danger
+                                                                : AppColors.primaryRed)),
                                                   ),
                                                 ),
                                               ),
@@ -257,14 +268,24 @@ class _OrdersHistoryScreenState extends ConsumerState<OrdersHistoryScreen> {
                                                 decoration: BoxDecoration(
                                                   color: isCompleted
                                                       ? AppColors.successLight
-                                                      : AppColors.warningLight,
+                                                      : (isOnTable
+                                                          ? Colors.blue.shade50
+                                                          : (isCancelled
+                                                              ? AppColors.danger.withAlpha(25)
+                                                              : AppColors.warningLight)),
                                                   borderRadius: BorderRadius.circular(4),
                                                 ),
                                                 child: Text(order.status,
                                                     style: TextStyle(
                                                         fontSize: 10,
                                                         fontWeight: FontWeight.bold,
-                                                        color: isCompleted ? AppColors.success : AppColors.warning)),
+                                                        color: isCompleted
+                                                            ? AppColors.success
+                                                            : (isOnTable
+                                                                ? Colors.blue
+                                                                : (isCancelled
+                                                                    ? AppColors.danger
+                                                                    : AppColors.warning)))),
                                               ),
                                               Container(
                                                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -324,7 +345,11 @@ class _OrdersHistoryScreenState extends ConsumerState<OrdersHistoryScreen> {
                                             radius: 22,
                                             backgroundColor: isCompleted
                                                 ? AppColors.successLight
-                                                : AppColors.lightRed,
+                                                : (isOnTable
+                                                    ? Colors.blue.shade50
+                                                    : (isCancelled
+                                                        ? AppColors.danger.withAlpha(25)
+                                                        : AppColors.lightRed)),
                                             child: Text(
                                               order.orderNumber.replaceAll('#CP-', ''),
                                               style: TextStyle(
@@ -332,7 +357,11 @@ class _OrdersHistoryScreenState extends ConsumerState<OrdersHistoryScreen> {
                                                 fontSize: 13,
                                                 color: isCompleted
                                                     ? AppColors.success
-                                                    : AppColors.primaryRed,
+                                                    : (isOnTable
+                                                        ? Colors.blue
+                                                        : (isCancelled
+                                                            ? AppColors.danger
+                                                            : AppColors.primaryRed)),
                                               ),
                                             ),
                                           ),
@@ -378,9 +407,11 @@ class _OrdersHistoryScreenState extends ConsumerState<OrdersHistoryScreen> {
                                                       decoration: BoxDecoration(
                                                         color: isCompleted
                                                             ? AppColors.successLight
-                                                            : (order.status == 'Cancelled'
+                                                            : (isCancelled
                                                                 ? AppColors.danger.withAlpha(30)
-                                                                : AppColors.warningLight),
+                                                                : (isOnTable
+                                                                    ? Colors.blue.shade50
+                                                                    : AppColors.warningLight)),
                                                         borderRadius:
                                                             BorderRadius.circular(4),
                                                       ),
@@ -391,9 +422,11 @@ class _OrdersHistoryScreenState extends ConsumerState<OrdersHistoryScreen> {
                                                           fontWeight: FontWeight.bold,
                                                           color: isCompleted
                                                               ? AppColors.success
-                                                              : (order.status == 'Cancelled'
+                                                              : (isCancelled
                                                                   ? AppColors.danger
-                                                                  : AppColors.warning),
+                                                                  : (isOnTable
+                                                                      ? Colors.blue
+                                                                      : AppColors.warning)),
                                                         ),
                                                       ),
                                                     ),
@@ -581,18 +614,30 @@ class _NewOrderDialogState extends ConsumerState<NewOrderDialog> {
         context: context,
         builder: (ctx) => AlertDialog(
           title: Text('Select Size for ${product.name}'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: product.sizes.map((s) {
-              return ListTile(
-                title: Text(s.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                trailing: Text(CurrencyFormatter.format(s.price), style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryRed)),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  _addToCart(product, s.name, s.price);
-                },
-              );
-            }).toList(),
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 400, maxWidth: 360),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: product.sizes.map((s) {
+                  return ListTile(
+                    title: Text(
+                      s.name.trim().isNotEmpty ? s.name : 'Regular',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    trailing: Text(
+                      CurrencyFormatter.format(s.price),
+                      style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryRed),
+                    ),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _addToCart(product, s.name, s.price);
+                    },
+                  );
+                }).toList(),
+              ),
+            ),
           ),
         ),
       );
@@ -966,37 +1011,43 @@ class _NewOrderDialogState extends ConsumerState<NewOrderDialog> {
                                             mainAxisAlignment:
                                                 MainAxisAlignment.spaceBetween,
                                             children: [
-                                              Text(
-                                                CurrencyFormatter.format(
-                                                    product.basePrice),
-                                                style: const TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 12,
-                                                  color: AppColors.primaryRed,
+                                              Flexible(
+                                                child: Text(
+                                                  CurrencyFormatter.format(
+                                                      product.basePrice),
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 12,
+                                                    color: AppColors.primaryRed,
+                                                  ),
                                                 ),
                                               ),
-                                              Container(
-                                                padding: const EdgeInsets.symmetric(
-                                                    horizontal: 8, vertical: 3),
-                                                decoration: BoxDecoration(
-                                                  color: AppColors.primaryRed,
-                                                  borderRadius: BorderRadius.circular(14),
-                                                ),
-                                                child: Row(
-                                                  mainAxisSize: MainAxisSize.min,
-                                                  children: const [
-                                                    Icon(Icons.add,
-                                                        size: 12, color: Colors.white),
-                                                    SizedBox(width: 2),
-                                                    Text(
-                                                      'Add',
-                                                      style: TextStyle(
-                                                        color: Colors.white,
-                                                        fontSize: 10.5,
-                                                        fontWeight: FontWeight.bold,
+                                              Flexible(
+                                                child: Container(
+                                                  padding: const EdgeInsets.symmetric(
+                                                      horizontal: 8, vertical: 3),
+                                                  decoration: BoxDecoration(
+                                                    color: AppColors.primaryRed,
+                                                    borderRadius: BorderRadius.circular(14),
+                                                  ),
+                                                  child: Row(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: const [
+                                                      Icon(Icons.add,
+                                                          size: 12, color: Colors.white),
+                                                      SizedBox(width: 2),
+                                                      Text(
+                                                        'Add',
+                                                        style: TextStyle(
+                                                          color: Colors.white,
+                                                          fontSize: 10.5,
+                                                          fontWeight: FontWeight.bold,
+                                                        ),
                                                       ),
-                                                    ),
-                                                  ],
+                                                    ],
+                                                  ),
                                                 ),
                                               ),
                                             ],
@@ -1082,6 +1133,7 @@ class _NewOrderDialogState extends ConsumerState<NewOrderDialog> {
                               Expanded(
                                 child: DropdownButtonFormField<OrderType>(
                                   initialValue: _orderType,
+                                  isExpanded: true,
                                   decoration: const InputDecoration(
                                     labelText: 'Order Type',
                                     prefixIcon: Icon(Icons.room_service_outlined, size: 18),
@@ -1102,6 +1154,7 @@ class _NewOrderDialogState extends ConsumerState<NewOrderDialog> {
                               Expanded(
                                 child: DropdownButtonFormField<String>(
                                   initialValue: _paymentMethod,
+                                  isExpanded: true,
                                   decoration: const InputDecoration(
                                     labelText: 'Payment',
                                     prefixIcon: Icon(Icons.payments_outlined, size: 18),
@@ -1345,56 +1398,72 @@ class _NewOrderDialogState extends ConsumerState<NewOrderDialog> {
                                 );
                               },
                             ),
-                          const Divider(height: 16),
-
-                          // Totals & Pricing Breakdown
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text('Subtotal:', style: TextStyle(fontSize: 11.5)),
-                              Text(CurrencyFormatter.format(_subtotal),
-                                  style: const TextStyle(fontSize: 11.5)),
-                            ],
-                          ),
-                          if (_discountAmount > 0)
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text('Discount (${_discountPercentage.toStringAsFixed(0)}%):',
-                                    style: const TextStyle(
-                                        fontSize: 11.5, color: AppColors.danger)),
-                                Text('- ${CurrencyFormatter.format(_discountAmount)}',
-                                    style: const TextStyle(
-                                        fontSize: 11.5, color: AppColors.danger)),
-                              ],
+                          const SizedBox(height: 12),
+                          // Totals & Pricing Breakdown Container
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppColors.lightGrey.withAlpha(60),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: AppColors.borderGrey.withAlpha(120)),
                             ),
-                          if (_extraCharges > 0)
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            child: Column(
                               children: [
-                                Text(
-                                    '${_extraChargesNoteController.text.trim().isNotEmpty ? _extraChargesNoteController.text.trim() : "Extra Charges"}:',
-                                    style: const TextStyle(fontSize: 11.5)),
-                                Text('+ ${CurrencyFormatter.format(_extraCharges)}',
-                                    style: const TextStyle(fontSize: 11.5)),
-                              ],
-                            ),
-                          const SizedBox(height: 4),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text('Total Bill:',
-                                  style:
-                                      TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                              Text(
-                                CurrencyFormatter.format(_totalBill),
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                  color: AppColors.primaryRed,
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    const Text('Subtotal:', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                                    Text(CurrencyFormatter.format(_subtotal),
+                                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                                  ],
                                 ),
-                              ),
-                            ],
+                                if (_discountAmount > 0) ...[
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text('Discount (${_discountPercentage.toStringAsFixed(0)}%):',
+                                          style: const TextStyle(
+                                              fontSize: 12, color: AppColors.danger)),
+                                      Text('- ${CurrencyFormatter.format(_discountAmount)}',
+                                          style: const TextStyle(
+                                              fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.danger)),
+                                    ],
+                                  ),
+                                ],
+                                if (_extraCharges > 0) ...[
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                          '${_extraChargesNoteController.text.trim().isNotEmpty ? _extraChargesNoteController.text.trim() : "Extra Charges"}:',
+                                          style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                                      Text('+ ${CurrencyFormatter.format(_extraCharges)}',
+                                          style: const TextStyle(
+                                              fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primaryRed)),
+                                    ],
+                                  ),
+                                ],
+                                const Divider(height: 12),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    const Text('Total Bill:',
+                                        style:
+                                            TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textDark)),
+                                    Text(
+                                      CurrencyFormatter.format(_totalBill),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 17,
+                                        color: AppColors.primaryRed,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
                           const SizedBox(height: 12),
 

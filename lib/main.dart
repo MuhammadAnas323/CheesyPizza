@@ -3,10 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_theme.dart';
 import 'screens/splash/splash_screen.dart';
 
-void main() {
-  WidgetsFlutterBinding.ensureInitialized();
-
-  // Custom error widget to avoid white screen on unexpected UI errors
+void runCommonApp(String environment) {
+  // Custom Error Widget setup
   ErrorWidget.builder = (FlutterErrorDetails details) {
     return Scaffold(
       backgroundColor: Colors.white,
@@ -38,22 +36,29 @@ void main() {
   };
 
   runApp(
-    const ProviderScope(
-      child: CheesyPizzaApp(),
+    ProviderScope(
+      child: CheesyPizzaApp(environment: environment),
     ),
   );
 }
 
 class CheesyPizzaApp extends StatelessWidget {
-  const CheesyPizzaApp({super.key});
+  final String environment;
+  const CheesyPizzaApp({super.key, required this.environment});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Cheesy Pizza',
-      debugShowCheckedModeBanner: false,
+      title: 'Cheesy Pizza ($environment)',
+      debugShowCheckedModeBanner: environment == 'Dev', // Dev me banner dikhayen, Prod me nahi
       theme: AppTheme.lightTheme,
       home: const SplashScreen(),
     );
   }
+}
+
+// Default fallback entry point (runs Dev by default if no -t is specified)
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  runCommonApp('Dev');
 }

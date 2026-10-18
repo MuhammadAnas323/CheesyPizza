@@ -6,7 +6,6 @@ import '../../models/order_model.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/currency_formatter.dart';
 import '../../core/utils/date_formatter.dart';
-import '../../services/printer_service.dart';
 import '../orders/widgets/order_details_dialog.dart';
 
 class DashboardScreen extends ConsumerWidget {
@@ -15,6 +14,7 @@ class DashboardScreen extends ConsumerWidget {
   void _showOrderDetailsDialog(BuildContext context, OrderModel order) {
     OrderDetailsDialog.show(context, order);
   }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedPeriod = ref.watch(reportTimePeriodProvider);
@@ -156,6 +156,89 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
+  Widget _buildMetricCard({
+    required String title,
+    required String value,
+    required IconData icon,
+    required Color iconColor,
+    required Color bgColor,
+    required String subtitle,
+    VoidCallback? onTap,
+  }) {
+    return Card(
+      elevation: 1.5,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: bgColor,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: iconColor, size: 26),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            title,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textMuted,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (onTap != null)
+                          const Icon(Icons.info_outline, size: 14, color: AppColors.primaryRed),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        value,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textDark,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        color: AppColors.textMuted.withAlpha(220),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   void _showSalesDetailDialog(BuildContext context, SalesReportData reportData, String periodLabel) {
     showDialog(
       context: context,
@@ -164,7 +247,7 @@ class DashboardScreen extends ConsumerWidget {
         insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         clipBehavior: Clip.antiAlias,
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 480),
+          constraints: const BoxConstraints(maxWidth: 480, maxHeight: 650),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -215,269 +298,210 @@ class DashboardScreen extends ConsumerWidget {
                 ),
               ),
 
-              // Content
-              Padding(
-                padding: const EdgeInsets.all(18),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Total Sales Highlight
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                      decoration: BoxDecoration(
-                        color: AppColors.lightRed.withAlpha(50),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.primaryRed.withAlpha(50)),
-                      ),
-                      child: Column(
-                        children: [
-                          const Text(
-                            'Total Completed Sales',
-                            style: TextStyle(
-                              fontSize: 12.5,
-                              color: AppColors.textMuted,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Text(
-                              CurrencyFormatter.format(reportData.totalRevenue),
-                              style: const TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.primaryRed,
+              // Scrollable Content
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(18),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Total Sales Highlight
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: AppColors.lightRed.withAlpha(50),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.primaryRed.withAlpha(50)),
+                        ),
+                        child: Column(
+                          children: [
+                            const Text(
+                              'Total Completed Sales',
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                color: AppColors.textMuted,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '${reportData.totalOrdersCount} Completed Order(s)',
-                            style: const TextStyle(fontSize: 11.5, color: AppColors.textMuted),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Cash Received Breakdown Card
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.green.shade50.withAlpha(120),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.green.shade200),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 42,
-                            height: 42,
-                            decoration: BoxDecoration(
-                              color: Colors.green.shade100,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Icon(Icons.payments_outlined, color: Colors.green, size: 22),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Received via Cash',
-                                  style: TextStyle(
-                                    fontSize: 12.5,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.textDark,
-                                  ),
+                            const SizedBox(height: 4),
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                CurrencyFormatter.format(reportData.totalRevenue),
+                                style: const TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primaryRed,
                                 ),
-                                Text(
-                                  '${reportData.cashOrdersCount} Cash Order(s)',
-                                  style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
-                                ),
-                              ],
+                              ),
                             ),
-                          ),
-                          Text(
-                            CurrencyFormatter.format(reportData.cashRevenue),
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.green,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-
-                    // Account Received Breakdown Card
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.shade50.withAlpha(120),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.blue.shade200),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 42,
-                            height: 42,
-                            decoration: BoxDecoration(
-                              color: Colors.blue.shade100,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Icon(Icons.account_balance_outlined, color: Colors.blue, size: 22),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Received via Account',
-                                  style: TextStyle(
-                                    fontSize: 12.5,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.textDark,
-                                  ),
-                                ),
-                                Text(
-                                  '${reportData.accountOrdersCount} Account / Digital Order(s)',
-                                  style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Text(
-                            CurrencyFormatter.format(reportData.accountRevenue),
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.blue,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    if (reportData.otherRevenue > 0) ...[
-                      const SizedBox(height: 10),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade50,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: AppColors.borderGrey.withAlpha(150)),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text('Other Payments:', style: TextStyle(fontSize: 12.5)),
+                            const SizedBox(height: 2),
                             Text(
-                              CurrencyFormatter.format(reportData.otherRevenue),
-                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                              '${reportData.totalOrdersCount} Completed Order(s)',
+                              style: const TextStyle(fontSize: 11.5, color: AppColors.textMuted),
                             ),
                           ],
                         ),
                       ),
+                      const SizedBox(height: 16),
+
+                      // Cash Received Breakdown Card
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade50.withAlpha(120),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.green.shade200),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 42,
+                              height: 42,
+                              decoration: BoxDecoration(
+                                color: Colors.green.shade100,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(Icons.payments_outlined, color: Colors.green, size: 22),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Received via Cash',
+                                    style: TextStyle(
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.textDark,
+                                    ),
+                                  ),
+                                  Text(
+                                    '${reportData.cashOrdersCount} Cash Order(s)',
+                                    style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                CurrencyFormatter.format(reportData.cashRevenue),
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.green,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+
+                      // Account Received Breakdown Card
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade50.withAlpha(120),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.blue.shade200),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 42,
+                              height: 42,
+                              decoration: BoxDecoration(
+                                color: Colors.blue.shade100,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(Icons.account_balance_outlined, color: Colors.blue, size: 22),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Received via Account',
+                                    style: TextStyle(
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.textDark,
+                                    ),
+                                  ),
+                                  Text(
+                                    '${reportData.accountOrdersCount} Account / Digital Order(s)',
+                                    style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                CurrencyFormatter.format(reportData.accountRevenue),
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blue,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      if (reportData.otherRevenue > 0) ...[
+                        const SizedBox(height: 10),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade50,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: AppColors.borderGrey.withAlpha(150)),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('Other Payments:', style: TextStyle(fontSize: 12.5)),
+                              Text(
+                                CurrencyFormatter.format(reportData.otherRevenue),
+                                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
 
-              // Bottom Close
+              // Actions
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 decoration: BoxDecoration(
                   color: Colors.grey.shade50,
-                  border: Border(top: BorderSide(color: AppColors.borderGrey.withAlpha(100))),
+                  border: Border(top: BorderSide(color: AppColors.borderGrey.withAlpha(128))),
                 ),
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Close'),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMetricCard({
-    required String title,
-    required String value,
-    required IconData icon,
-    required Color iconColor,
-    required Color bgColor,
-    required String subtitle,
-    VoidCallback? onTap,
-  }) {
-    return Card(
-      elevation: 1.5,
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Container(
-                width: 50,
-                height: 50,
-                decoration: BoxDecoration(
-                  color: bgColor,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(icon, color: iconColor, size: 26),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textMuted,
-                        fontWeight: FontWeight.w500,
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryRed,
+                        foregroundColor: Colors.white,
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        value,
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textDark,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        fontSize: 10.5,
-                        color: onTap != null ? iconColor : AppColors.textMuted.withAlpha(220),
-                        fontWeight: onTap != null ? FontWeight.w600 : FontWeight.normal,
-                      ),
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text('Close'),
                     ),
                   ],
                 ),
               ),
-              if (onTap != null)
-                const Icon(Icons.chevron_right, size: 20, color: AppColors.textMuted),
             ],
           ),
         ),
@@ -633,27 +657,6 @@ class DashboardScreen extends ConsumerWidget {
                                     fontWeight: FontWeight.bold,
                                     fontSize: 12.5,
                                     color: AppColors.primaryRed,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                InkWell(
-                                  onTap: () =>
-                                      PrinterService.showPrintModal(context, order),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: const [
-                                      Icon(Icons.print,
-                                          size: 12, color: AppColors.primaryRed),
-                                      SizedBox(width: 2),
-                                      Text(
-                                        'Print',
-                                        style: TextStyle(
-                                          fontSize: 10.5,
-                                          color: AppColors.primaryRed,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ],
                                   ),
                                 ),
                               ],

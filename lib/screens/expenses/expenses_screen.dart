@@ -320,7 +320,7 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
       body: LayoutBuilder(
         builder: (context, constraints) {
           final isMobile = constraints.maxWidth < 650;
-          return Padding(
+          return SingleChildScrollView(
             padding: EdgeInsets.all(isMobile ? 12 : 20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -512,74 +512,77 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                 ),
                 const SizedBox(height: 12),
 
-                // Expenses List
-                Expanded(
-                  child: expensesAsync.when(
-                    data: (expenses) {
-                      final query = _searchController.text.trim().toLowerCase();
-                      final filtered = expenses.where((e) {
-                        return query.isEmpty || e.note.toLowerCase().contains(query);
-                      }).toList();
+                // Expenses List (Scrollable list without Expanded inside SingleChildScrollView)
+                expensesAsync.when(
+                  data: (expenses) {
+                    final query = _searchController.text.trim().toLowerCase();
+                    final filtered = expenses.where((e) {
+                      return query.isEmpty || e.note.toLowerCase().contains(query);
+                    }).toList();
 
-                      if (filtered.isEmpty) {
-                        return const Center(
+                    if (filtered.isEmpty) {
+                      return const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 40),
+                        child: Center(
                           child: Text(
                             'No expenses recorded yet. Click "Add" to start.',
                             textAlign: TextAlign.center,
                             style: TextStyle(color: AppColors.textMuted, fontSize: 14),
                           ),
-                        );
-                      }
+                        ),
+                      );
+                    }
 
-                      return ListView.builder(
-                        itemCount: filtered.length,
-                        itemBuilder: (context, index) {
-                          final expense = filtered[index];
-                          return Card(
-                            margin: const EdgeInsets.only(bottom: 10),
-                            clipBehavior: Clip.antiAlias,
-                            child: InkWell(
-                              onTap: () => _showExpenseDetailsDialog(expense),
-                              onLongPress: () => _showExpenseOptionsSheet(expense),
-                              child: ListTile(
-                                contentPadding:
-                                    const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                                leading: CircleAvatar(
-                                  backgroundColor: AppColors.lightRed,
-                                  child: const Icon(Icons.receipt, color: AppColors.primaryRed, size: 18),
+                    return ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: filtered.length,
+                      itemBuilder: (_, index) {
+                        final expense = filtered[index];
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          clipBehavior: Clip.antiAlias,
+                          child: InkWell(
+                            onTap: () => _showExpenseDetailsDialog(expense),
+                            onLongPress: () => _showExpenseOptionsSheet(expense),
+                            child: ListTile(
+                              contentPadding:
+                                  const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                              leading: CircleAvatar(
+                                backgroundColor: AppColors.lightRed,
+                                child: const Icon(Icons.receipt, color: AppColors.primaryRed, size: 18),
+                              ),
+                              title: Text(
+                                expense.note,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13.5,
+                                  color: AppColors.textDark,
                                 ),
-                                title: Text(
-                                  expense.note,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 13.5,
-                                    color: AppColors.textDark,
-                                  ),
+                              ),
+                              subtitle: Text(
+                                DateFormatter.formatDateTime(expense.createdAt),
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: AppColors.textMuted,
                                 ),
-                                subtitle: Text(
-                                  DateFormatter.formatDateTime(expense.createdAt),
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    color: AppColors.textMuted,
-                                  ),
-                                ),
-                                trailing: Text(
-                                  CurrencyFormatter.format(expense.amount),
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                    color: AppColors.primaryRed,
-                                  ),
+                              ),
+                              trailing: Text(
+                                CurrencyFormatter.format(expense.amount),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                  color: AppColors.primaryRed,
                                 ),
                               ),
                             ),
-                          );
-                        },
-                      );
-                    },
-                    loading: () => const Center(child: CircularProgressIndicator()),
-                    error: (e, _) => Center(child: Text('Error: $e')),
-                  ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (e, _) => Center(child: Text('Error: $e')),
                 ),
               ],
             ),

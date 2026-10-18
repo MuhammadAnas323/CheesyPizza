@@ -41,6 +41,9 @@ dependencies:
   pdf: ^3.11.2
   printing: ^5.13.3
   shared_preferences: ^2.5.2
+  firebase_remote_config: ^5.5.0
+  package_info_plus: ^10.2.2
+  url_launcher: ^6.3.3
 
 dev_dependencies:
   flutter_test:

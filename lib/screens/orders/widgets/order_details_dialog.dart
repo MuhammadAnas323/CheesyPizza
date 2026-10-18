@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../models/order_model.dart';
 import '../../../core/theme/app_colors.dart';
@@ -27,6 +27,7 @@ class OrderDetailsDialog extends ConsumerWidget {
     final statusLower = order.status.toLowerCase();
     final isCompleted = statusLower == 'completed';
     final isCancelled = statusLower == 'cancelled';
+    final isOnTable = statusLower == 'on table';
     final isPending = !isCompleted && !isCancelled;
 
     final hasCustomerInfo = (order.customerName != null && order.customerName!.trim().isNotEmpty) ||
@@ -113,14 +114,18 @@ class OrderDetailsDialog extends ConsumerWidget {
                                 ? AppColors.successLight
                                 : (isCancelled
                                     ? AppColors.danger.withAlpha(30)
-                                    : AppColors.warningLight),
+                                    : (isOnTable
+                                        ? Colors.blue.shade50
+                                        : AppColors.warningLight)),
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
                               color: isCompleted
                                   ? AppColors.success.withAlpha(75)
                                   : (isCancelled
                                       ? AppColors.danger.withAlpha(75)
-                                      : AppColors.warning.withAlpha(75)),
+                                      : (isOnTable
+                                          ? Colors.blue.withAlpha(75)
+                                          : AppColors.warning.withAlpha(75))),
                             ),
                           ),
                           child: Row(
@@ -129,11 +134,17 @@ class OrderDetailsDialog extends ConsumerWidget {
                               Icon(
                                 isCompleted
                                     ? Icons.check_circle
-                                    : (isCancelled ? Icons.cancel : Icons.schedule),
+                                    : (isCancelled
+                                        ? Icons.cancel
+                                        : (isOnTable
+                                            ? Icons.table_restaurant
+                                            : Icons.schedule)),
                                 size: 14,
                                 color: isCompleted
                                     ? AppColors.success
-                                    : (isCancelled ? AppColors.danger : AppColors.warning),
+                                    : (isCancelled
+                                        ? AppColors.danger
+                                        : (isOnTable ? Colors.blue : AppColors.warning)),
                               ),
                               const SizedBox(width: 4),
                               Text(
@@ -143,7 +154,9 @@ class OrderDetailsDialog extends ConsumerWidget {
                                   fontSize: 11.5,
                                   color: isCompleted
                                       ? AppColors.success
-                                      : (isCancelled ? AppColors.danger : AppColors.warning),
+                                      : (isCancelled
+                                          ? AppColors.danger
+                                          : (isOnTable ? Colors.blue : AppColors.warning)),
                                 ),
                               ),
                             ],
@@ -432,31 +445,65 @@ class OrderDetailsDialog extends ConsumerWidget {
                       ),
                     ),
 
-                    // Pending Order Quick Action Banner
+                    // Pending/OnTable Order Quick Action Banner
                     if (isPending) ...[
                       const SizedBox(height: 14),
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: AppColors.warningLight.withAlpha(90),
+                          color: isOnTable
+                              ? Colors.blue.shade50
+                              : AppColors.warningLight.withAlpha(90),
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: AppColors.warning.withAlpha(90)),
+                          border: Border.all(
+                              color: isOnTable
+                                  ? Colors.blue.withAlpha(90)
+                                  : AppColors.warning.withAlpha(90)),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
-                              children: const [
-                                Icon(Icons.touch_app, size: 16, color: AppColors.warning),
-                                SizedBox(width: 6),
+                              children: [
+                                Icon(
+                                  isOnTable ? Icons.table_restaurant : Icons.touch_app,
+                                  size: 16,
+                                  color: isOnTable ? Colors.blue : AppColors.warning,
+                                ),
+                                const SizedBox(width: 6),
                                 Text(
-                                  'Order Status Actions',
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textDark),
+                                  isOnTable ? 'On Table – Actions' : 'Order Status Actions',
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                      color: AppColors.textDark),
                                 ),
                               ],
                             ),
                             const SizedBox(height: 8),
+                            // On Table button: only shown for Pending (not already on table)
+                            if (!isOnTable) ...[
+                              SizedBox(
+                                width: double.infinity,
+                                child: OutlinedButton.icon(
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Colors.blue,
+                                    side: const BorderSide(color: Colors.blue),
+                                    padding: const EdgeInsets.symmetric(vertical: 10),
+                                  ),
+                                  icon: const Icon(Icons.table_restaurant, size: 16),
+                                  label: const Text('Move to On Table',
+                                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5)),
+                                  onPressed: () async {
+                                    Navigator.pop(context);
+                                    await ref
+                                        .read(orderNotifierProvider.notifier)
+                                        .updateStatus(order.id, 'On Table');
+                                  },
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                            ],
                             Row(
                               children: [
                                 Expanded(

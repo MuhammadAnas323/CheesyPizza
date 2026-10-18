@@ -156,7 +156,7 @@ class SalesReportsScreen extends ConsumerWidget {
         insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         clipBehavior: Clip.antiAlias,
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 480),
+          constraints: const BoxConstraints(maxWidth: 480, maxHeight: 650),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -208,11 +208,12 @@ class SalesReportsScreen extends ConsumerWidget {
               ),
 
               // Content
-              Padding(
-                padding: const EdgeInsets.all(18),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(18),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
                     // Total Sales Highlight
                     Container(
                       width: double.infinity,
@@ -293,12 +294,15 @@ class SalesReportsScreen extends ConsumerWidget {
                               ],
                             ),
                           ),
-                          Text(
-                            CurrencyFormatter.format(reportData.cashRevenue),
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.green,
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              CurrencyFormatter.format(reportData.cashRevenue),
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green,
+                              ),
                             ),
                           ),
                         ],
@@ -345,12 +349,15 @@ class SalesReportsScreen extends ConsumerWidget {
                               ],
                             ),
                           ),
-                          Text(
-                            CurrencyFormatter.format(reportData.accountRevenue),
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.blue,
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              CurrencyFormatter.format(reportData.accountRevenue),
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue,
+                              ),
                             ),
                           ),
                         ],
@@ -378,7 +385,8 @@ class SalesReportsScreen extends ConsumerWidget {
                         ),
                       ),
                     ],
-                  ],
+                    ],
+                  ),
                 ),
               ),
 
