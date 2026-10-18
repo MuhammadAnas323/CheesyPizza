@@ -42,9 +42,10 @@ class AppInitializationNotifier
         // Continue even if local storage takes longer
       });
 
-      // 2. Initialize Firebase/Firestore with project credentials
+      // 2. Initialize Firebase/Firestore with environment project credentials
       final firebaseService = _ref.read(firebaseServiceProvider);
-      await firebaseService.init();
+      final firebaseOptions = _ref.read(firebaseOptionsProvider);
+      await firebaseService.init(options: firebaseOptions);
 
       state = AsyncValue.data(
         AppInitializationState(

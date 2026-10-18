@@ -34,6 +34,7 @@ android {
         create("dev") {
             dimension = "default"
             applicationId = "com.cheesypizza.cheesy_pizza"
+            isDefault = true
         }
         create("prod") {
             dimension = "default"

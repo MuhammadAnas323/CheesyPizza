@@ -49,25 +49,42 @@ class FirebaseService {
     }
 
     try {
+      final desiredOptions = options ?? DefaultFirebaseOptions.currentPlatform;
+
+      // If an existing app has a different project ID, delete it and switch to desired project
+      if (Firebase.apps.isNotEmpty) {
+        final currentApp = Firebase.app();
+        if (currentApp.options.projectId != desiredOptions.projectId) {
+          dev.log(
+            'FirebaseService: Project mismatch! Current: ${currentApp.options.projectId}, Desired: ${desiredOptions.projectId}. Switching project...',
+            name: 'FirebaseService',
+          );
+          try {
+            await currentApp.delete();
+          } catch (e) {
+            dev.log('Error deleting mismatched Firebase app: $e', name: 'FirebaseService');
+          }
+        }
+      }
+
+      if (Firebase.apps.isEmpty) {
+        try {
+          await Firebase.initializeApp(
+            options: desiredOptions,
+          ).timeout(const Duration(seconds: 8));
+          dev.log('Firebase initialized successfully for: ${desiredOptions.projectId}', name: 'FirebaseService');
+        } catch (e) {
+          dev.log('Firebase initialization skipped or timed out (offline/local mode active): $e', name: 'FirebaseService');
+        }
+      }
+
       if (Firebase.apps.isNotEmpty) {
         _isInitialized = true;
         _firestore = FirebaseFirestore.instance;
-        dev.log('Firebase already initialized for project: ${Firebase.app().options.projectId}', name: 'FirebaseService');
+        dev.log('Firebase active and connected to project: ${Firebase.app().options.projectId}', name: 'FirebaseService');
       } else {
-        try {
-          await Firebase.initializeApp(
-            options: options ?? DefaultFirebaseOptions.currentPlatform,
-          ).timeout(const Duration(seconds: 8));
-          _isInitialized = true;
-          _firestore = FirebaseFirestore.instance;
-          dev.log('Firebase initialized successfully.', name: 'FirebaseService');
-        } catch (e) {
-          _isInitialized = false;
-          _firestore = null;
-          dev.log(
-              'Firebase initialization skipped or timed out (offline/local mode active): $e',
-              name: 'FirebaseService');
-        }
+        _isInitialized = false;
+        _firestore = null;
       }
     } catch (e) {
       _isInitialized = false;
