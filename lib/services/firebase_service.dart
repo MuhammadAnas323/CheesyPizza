@@ -8,6 +8,7 @@ import '../models/category_model.dart';
 import '../models/product_model.dart';
 import '../models/order_model.dart';
 import '../models/expense_model.dart';
+import '../firebase_options.dart';
 
 class FirebaseService {
   static final FirebaseService _instance = FirebaseService._internal();
@@ -52,15 +53,14 @@ class FirebaseService {
         _isInitialized = true;
         _firestore = FirebaseFirestore.instance;
         dev.log('Firebase already initialized for project: ${Firebase.app().options.projectId}', name: 'FirebaseService');
-      } else if (options != null) {
+      } else {
         try {
           await Firebase.initializeApp(
-            options: options,
+            options: options ?? DefaultFirebaseOptions.currentPlatform,
           ).timeout(const Duration(seconds: 8));
           _isInitialized = true;
           _firestore = FirebaseFirestore.instance;
-          dev.log('Firebase initialized successfully for ${options.projectId}.',
-              name: 'FirebaseService');
+          dev.log('Firebase initialized successfully.', name: 'FirebaseService');
         } catch (e) {
           _isInitialized = false;
           _firestore = null;
@@ -68,10 +68,6 @@ class FirebaseService {
               'Firebase initialization skipped or timed out (offline/local mode active): $e',
               name: 'FirebaseService');
         }
-      } else {
-        _isInitialized = false;
-        _firestore = null;
-        dev.log('Firebase options not provided and no app initialized.', name: 'FirebaseService');
       }
     } catch (e) {
       _isInitialized = false;
@@ -261,6 +257,8 @@ class FirebaseService {
           .toList();
       list.sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
       return list;
+    }).handleError((error) {
+      dev.log('Error in categoriesStream (Check Firestore security rules): $error', name: 'FirebaseService');
     });
   }
 
@@ -277,6 +275,8 @@ class FirebaseService {
           .map((doc) => ProductModel.fromMap(
               Map<String, dynamic>.from(doc.data() as Map), doc.id))
           .toList();
+    }).handleError((error) {
+      dev.log('Error in productsStream (Check Firestore security rules): $error', name: 'FirebaseService');
     });
   }
 
@@ -295,6 +295,8 @@ class FirebaseService {
           .toList();
       list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return list;
+    }).handleError((error) {
+      dev.log('Error in ordersStream (Check Firestore security rules): $error', name: 'FirebaseService');
     });
   }
 
@@ -313,6 +315,8 @@ class FirebaseService {
           .toList();
       list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return list;
+    }).handleError((error) {
+      dev.log('Error in expensesStream (Check Firestore security rules): $error', name: 'FirebaseService');
     });
   }
 }
