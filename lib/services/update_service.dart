@@ -211,12 +211,41 @@ class UpdateService {
                 icon: const Icon(Icons.download_rounded, size: 16),
                 label: const Text('Update Now', style: TextStyle(fontWeight: FontWeight.bold)),
                 onPressed: () async {
-                  final uri = Uri.parse(info.updateUrl);
-                  if (await canLaunchUrl(uri)) {
-                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  final urlStr = info.updateUrl.trim();
+                  if (urlStr.isEmpty) {
+                    dev.log('Update URL is empty', name: 'UpdateService');
+                    return;
                   }
-                  if (!info.isForceUpdate && ctx.mounted) {
-                    Navigator.pop(ctx);
+
+                  final uri = Uri.parse(urlStr);
+                  try {
+                    // Launch directly in external application (browser / package installer)
+                    bool launched = await launchUrl(
+                      uri,
+                      mode: LaunchMode.externalApplication,
+                    );
+
+                    // Fallback if externalApplication returned false
+                    if (!launched) {
+                      launched = await launchUrl(
+                        uri,
+                        mode: LaunchMode.platformDefault,
+                      );
+                    }
+
+                    if (launched && !info.isForceUpdate && ctx.mounted) {
+                      Navigator.pop(ctx);
+                    }
+                  } catch (e) {
+                    dev.log('Error launching update URL: $e', name: 'UpdateService');
+                    if (ctx.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Could not open download link: $e'),
+                          backgroundColor: Colors.red.shade700,
+                        ),
+                      );
+                    }
                   }
                 },
               ),
