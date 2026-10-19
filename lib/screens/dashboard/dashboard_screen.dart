@@ -189,18 +189,28 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       children: [
                         Expanded(
                           child: _buildMetricCard(
-                            title: "Today's Sales",
-                            value: CurrencyFormatter.format(reportData.todaySales),
+                            title: selectedPeriod == ReportTimePeriod.today
+                                ? "Today's Sales"
+                                : "Sales (${selectedPeriod.label})",
+                            value: selectedPeriod == ReportTimePeriod.today
+                                ? CurrencyFormatter.format(reportData.todaySales)
+                                : CurrencyFormatter.format(reportData.totalRevenue),
                             icon: Icons.payments,
                             iconColor: AppColors.primaryRed,
                             bgColor: AppColors.lightRed,
-                            subtitle: "Tap for breakdown",
+                            subtitle: selectedPeriod == ReportTimePeriod.today
+                                ? "Tap for breakdown"
+                                : "Today: ${CurrencyFormatter.format(reportData.todaySales)}",
                             isMobile: isMobile,
                             onTap: () => _showSalesDetailDialog(
                               context,
                               reportData,
-                              "Today",
-                              reportData.todaySales,
+                              selectedPeriod == ReportTimePeriod.today
+                                  ? "Today"
+                                  : selectedPeriod.label,
+                              selectedPeriod == ReportTimePeriod.today
+                                  ? reportData.todaySales
+                                  : reportData.totalRevenue,
                             ),
                           ),
                         ),

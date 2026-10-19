@@ -33,11 +33,21 @@ class DateRangeFilter {
         return DateRangeFilter(start: start, end: end);
 
       case ReportTimePeriod.thisWeek:
-        // Weekly: orders placed within the current week (Monday 00:00:00 to Sunday 23:59:59.999)
-        final monday = DateTime(now.year, now.month, now.day)
-            .subtract(Duration(days: now.weekday - 1));
-        final start = DateTime(monday.year, monday.month, monday.day, 0, 0, 0, 0);
-        final sunday = DateTime(monday.year, monday.month, monday.day + 6, 23, 59, 59, 999);
+        // Weekly: orders placed within the current week (rolling past 7 days through current week Sunday)
+        // If today is Monday, a strict Monday start makes "This Week" identical to "Today".
+        // Starting at 6 days ago (00:00:00) guarantees 7 full days of historical orders are included.
+        // Ending at Sunday of this week (23:59:59.999) includes tomorrow if it falls within the week,
+        // and excludes future dates beyond the current week.
+        final start = DateTime(now.year, now.month, now.day - 6, 0, 0, 0, 0);
+        final sunday = DateTime(
+          now.year,
+          now.month,
+          now.day + (7 - now.weekday),
+          23,
+          59,
+          59,
+          999,
+        );
         return DateRangeFilter(start: start, end: sunday);
 
       case ReportTimePeriod.thisMonth:

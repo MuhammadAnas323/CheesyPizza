@@ -296,9 +296,7 @@ class OrderModel {
     return OrderModel(
       id: docId ?? map['id'] ?? '',
       orderNumber: map['orderNumber'] ?? '',
-      createdAt: map['createdAt'] != null
-          ? DateTime.tryParse(map['createdAt'].toString()) ?? DateTime.now()
-          : DateTime.now(),
+      createdAt: _parseDate(map['createdAt']),
       orderType: OrderType.fromString(map['orderType'] ?? 'Dine-in'),
       items: itemsList,
       subtotal: subtotal,
@@ -316,5 +314,17 @@ class OrderModel {
       status: map['status'] ?? 'Pending',
       paymentMethod: map['paymentMethod'] ?? 'Cash',
     );
+  }
+
+  static DateTime _parseDate(dynamic val) {
+    if (val == null) return DateTime.now();
+    if (val is DateTime) return val;
+    if (val is int) return DateTime.fromMillisecondsSinceEpoch(val);
+    try {
+      // Check if Firestore Timestamp (has toDate() method)
+      return (val as dynamic).toDate() as DateTime;
+    } catch (_) {
+      return DateTime.tryParse(val.toString()) ?? DateTime.now();
+    }
   }
 }

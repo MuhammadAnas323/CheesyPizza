@@ -28,10 +28,19 @@ class ExpenseModel {
       id: docId ?? map['id'] ?? '',
       note: map['note'] ?? '',
       amount: (map['amount'] as num?)?.toDouble() ?? 0.0,
-      createdAt: map['createdAt'] != null
-          ? DateTime.tryParse(map['createdAt'].toString()) ?? DateTime.now()
-          : DateTime.now(),
+      createdAt: _parseDate(map['createdAt']),
     );
+  }
+
+  static DateTime _parseDate(dynamic val) {
+    if (val == null) return DateTime.now();
+    if (val is DateTime) return val;
+    if (val is int) return DateTime.fromMillisecondsSinceEpoch(val);
+    try {
+      return (val as dynamic).toDate() as DateTime;
+    } catch (_) {
+      return DateTime.tryParse(val.toString()) ?? DateTime.now();
+    }
   }
 
   ExpenseModel copyWith({
