@@ -20,6 +20,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   final ScrollController _scrollController = ScrollController();
   ReportTimePeriod? _lastPeriod;
   DateTimeRange? _lastCustomRange;
+  String? _selectedStatusFilter; // 'completed', 'pending', 'on table', 'cancelled', or null
 
   @override
   void initState() {
@@ -180,71 +181,87 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 SizedBox(height: isMobile ? 16 : 20),
 
                 // -----------------------------------------------------------
-                // SUMMARY CARDS: Exactly Four Cards in Two Rows (Two per row)
+                // SUMMARY CARDS: Sales Overview + 4 Status Cards (with Tap-to-filter)
                 // -----------------------------------------------------------
                 Column(
                   children: [
-                    // ROW 1: Today's Sales & Total Completed Orders
+                    // SALES OVERVIEW CARD
+                    _buildMetricCard(
+                      title: selectedPeriod == ReportTimePeriod.today
+                          ? "Today's Sales"
+                          : "Sales (${selectedPeriod.label})",
+                      value: selectedPeriod == ReportTimePeriod.today
+                          ? CurrencyFormatter.format(reportData.todaySales)
+                          : CurrencyFormatter.format(reportData.totalRevenue),
+                      icon: Icons.payments,
+                      iconColor: AppColors.primaryRed,
+                      bgColor: AppColors.lightRed,
+                      subtitle: selectedPeriod == ReportTimePeriod.today
+                          ? "Tap for Cash & Account details"
+                          : "Today: ${CurrencyFormatter.format(reportData.todaySales)} • Tap for details",
+                      isMobile: isMobile,
+                      showInfoIcon: true,
+                      onTap: () => _showSalesDetailDialog(
+                        context,
+                        reportData,
+                        selectedPeriod == ReportTimePeriod.today
+                            ? "Today"
+                            : selectedPeriod.label,
+                        selectedPeriod == ReportTimePeriod.today
+                            ? reportData.todaySales
+                            : reportData.totalRevenue,
+                      ),
+                    ),
+                    SizedBox(height: isMobile ? 8 : 12),
+
+                    // STATUS CARDS (Tap any card to filter recent orders below)
+                    // ROW 1: Completed Orders & Pending Orders
                     Row(
                       children: [
                         Expanded(
                           child: _buildMetricCard(
-                            title: selectedPeriod == ReportTimePeriod.today
-                                ? "Today's Sales"
-                                : "Sales (${selectedPeriod.label})",
-                            value: selectedPeriod == ReportTimePeriod.today
-                                ? CurrencyFormatter.format(reportData.todaySales)
-                                : CurrencyFormatter.format(reportData.totalRevenue),
-                            icon: Icons.payments,
-                            iconColor: AppColors.primaryRed,
-                            bgColor: AppColors.lightRed,
-                            subtitle: selectedPeriod == ReportTimePeriod.today
-                                ? "Tap for breakdown"
-                                : "Today: ${CurrencyFormatter.format(reportData.todaySales)}",
-                            isMobile: isMobile,
-                            onTap: () => _showSalesDetailDialog(
-                              context,
-                              reportData,
-                              selectedPeriod == ReportTimePeriod.today
-                                  ? "Today"
-                                  : selectedPeriod.label,
-                              selectedPeriod == ReportTimePeriod.today
-                                  ? reportData.todaySales
-                                  : reportData.totalRevenue,
-                            ),
-                          ),
-                        ),
-                        SizedBox(width: isMobile ? 8 : 14),
-                        Expanded(
-                          child: _buildMetricCard(
-                            title: "Total Completed Orders",
+                            title: "Completed Orders",
                             value: "${reportData.totalOrdersCount}",
                             icon: Icons.check_circle,
                             iconColor: AppColors.success,
                             bgColor: AppColors.successLight,
-                            subtitle: "${selectedPeriod.label} completed",
+                            subtitle: "Tap to filter",
                             isMobile: isMobile,
+                            isSelected: _selectedStatusFilter == 'completed',
+                            onTap: () {
+                              setState(() {
+                                _selectedStatusFilter =
+                                    _selectedStatusFilter == 'completed' ? null : 'completed';
+                              });
+                            },
+                          ),
+                        ),
+                        SizedBox(width: isMobile ? 8 : 12),
+                        Expanded(
+                          child: _buildMetricCard(
+                            title: "Pending Orders",
+                            value: "${reportData.pendingOrdersCount}",
+                            icon: Icons.hourglass_top,
+                            iconColor: Colors.orange.shade800,
+                            bgColor: Colors.orange.shade50,
+                            subtitle: "Tap to filter",
+                            isMobile: isMobile,
+                            isSelected: _selectedStatusFilter == 'pending',
+                            onTap: () {
+                              setState(() {
+                                _selectedStatusFilter =
+                                    _selectedStatusFilter == 'pending' ? null : 'pending';
+                              });
+                            },
                           ),
                         ),
                       ],
                     ),
-                    SizedBox(height: isMobile ? 8 : 14),
+                    SizedBox(height: isMobile ? 8 : 12),
 
-                    // ROW 2: Cancelled Orders & On Table Orders
+                    // ROW 2: On Table Orders & Cancelled Orders
                     Row(
                       children: [
-                        Expanded(
-                          child: _buildMetricCard(
-                            title: "Cancelled Orders",
-                            value: "${reportData.cancelledOrdersCount}",
-                            icon: Icons.cancel_outlined,
-                            iconColor: Colors.red.shade700,
-                            bgColor: Colors.red.shade50,
-                            subtitle: "${selectedPeriod.label} cancelled",
-                            isMobile: isMobile,
-                          ),
-                        ),
-                        SizedBox(width: isMobile ? 8 : 14),
                         Expanded(
                           child: _buildMetricCard(
                             title: "On Table Orders",
@@ -252,8 +269,34 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                             icon: Icons.table_restaurant_outlined,
                             iconColor: Colors.amber.shade900,
                             bgColor: Colors.amber.shade50,
-                            subtitle: "Active on table",
+                            subtitle: "Tap to filter",
                             isMobile: isMobile,
+                            isSelected: _selectedStatusFilter == 'on table',
+                            onTap: () {
+                              setState(() {
+                                _selectedStatusFilter =
+                                    _selectedStatusFilter == 'on table' ? null : 'on table';
+                              });
+                            },
+                          ),
+                        ),
+                        SizedBox(width: isMobile ? 8 : 12),
+                        Expanded(
+                          child: _buildMetricCard(
+                            title: "Cancelled Orders",
+                            value: "${reportData.cancelledOrdersCount}",
+                            icon: Icons.cancel_outlined,
+                            iconColor: Colors.red.shade700,
+                            bgColor: Colors.red.shade50,
+                            subtitle: "Tap to filter",
+                            isMobile: isMobile,
+                            isSelected: _selectedStatusFilter == 'cancelled',
+                            onTap: () {
+                              setState(() {
+                                _selectedStatusFilter =
+                                    _selectedStatusFilter == 'cancelled' ? null : 'cancelled';
+                              });
+                            },
                           ),
                         ),
                       ],
@@ -271,6 +314,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   periodLabel: selectedPeriod.label,
                   totalCount: reportData.totalPeriodOrdersCount,
                   paginatedState: paginatedOrders,
+                  selectedStatusFilter: _selectedStatusFilter,
+                  onClearFilter: () => setState(() => _selectedStatusFilter = null),
+                  allPeriodOrders: reportData.orders,
+                  allOrders: ref.watch(orderNotifierProvider).asData?.value ?? [],
                 ),
               ],
             ),
@@ -289,9 +336,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     required String subtitle,
     VoidCallback? onTap,
     bool isMobile = false,
+    bool isSelected = false,
+    bool showInfoIcon = false,
   }) {
     return Card(
-      elevation: 1.5,
+      elevation: isSelected ? 3 : 1.5,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: isSelected
+            ? BorderSide(color: iconColor, width: 2)
+            : const BorderSide(color: Colors.transparent, width: 2),
+      ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
@@ -303,7 +358,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 width: isMobile ? 38 : 46,
                 height: isMobile ? 38 : 46,
                 decoration: BoxDecoration(
-                  color: bgColor,
+                  color: isSelected ? iconColor.withAlpha(35) : bgColor,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(icon, color: iconColor, size: isMobile ? 20 : 24),
@@ -321,14 +376,31 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                             title,
                             style: TextStyle(
                               fontSize: isMobile ? 10.5 : 12,
-                              color: AppColors.textMuted,
-                              fontWeight: FontWeight.w600,
+                              color: isSelected ? iconColor : AppColors.textMuted,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        if (onTap != null) ...[
+                        if (isSelected) ...[
+                          const SizedBox(width: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: iconColor,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text(
+                              'FILTER',
+                              style: TextStyle(
+                                fontSize: 8.5,
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ] else if (showInfoIcon) ...[
                           const SizedBox(width: 4),
                           const Icon(Icons.info_outline, size: 13, color: AppColors.primaryRed),
                         ],
@@ -349,10 +421,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      subtitle,
+                      isSelected ? "Active • Tap to show all" : subtitle,
                       style: TextStyle(
                         fontSize: isMobile ? 9.5 : 10.5,
-                        color: AppColors.textMuted.withAlpha(220),
+                        color: isSelected ? iconColor : AppColors.textMuted.withAlpha(220),
+                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -648,8 +721,46 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     required String periodLabel,
     required int totalCount,
     required PaginatedOrdersState paginatedState,
+    String? selectedStatusFilter,
+    required VoidCallback onClearFilter,
+    required List<OrderModel> allPeriodOrders,
+    required List<OrderModel> allOrders,
   }) {
-    final orders = paginatedState.orders;
+    final bool isFiltering = selectedStatusFilter != null;
+    final List<OrderModel> orders;
+    final int displayTotalCount;
+
+    String filterLabel = '';
+    Color filterColor = AppColors.primaryRed;
+    IconData filterIcon = Icons.filter_alt;
+
+    if (isFiltering) {
+      final statusKey = selectedStatusFilter.toLowerCase();
+      if (statusKey == 'completed') {
+        filterLabel = 'Completed';
+        filterColor = AppColors.success;
+        filterIcon = Icons.check_circle;
+      } else if (statusKey == 'pending') {
+        filterLabel = 'Pending';
+        filterColor = Colors.orange.shade800;
+        filterIcon = Icons.hourglass_top;
+      } else if (statusKey == 'on table') {
+        filterLabel = 'On Table';
+        filterColor = Colors.amber.shade900;
+        filterIcon = Icons.table_restaurant_outlined;
+      } else if (statusKey == 'cancelled') {
+        filterLabel = 'Cancelled';
+        filterColor = Colors.red.shade700;
+        filterIcon = Icons.cancel_outlined;
+      }
+
+      final source = (statusKey == 'on table') ? allOrders : allPeriodOrders;
+      orders = source.where((o) => o.status.trim().toLowerCase() == statusKey).toList();
+      displayTotalCount = orders.length;
+    } else {
+      orders = paginatedState.orders;
+      displayTotalCount = totalCount;
+    }
 
     return Card(
       elevation: 1.5,
@@ -663,7 +774,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               children: [
                 Expanded(
                   child: Text(
-                    'Recent Orders ($periodLabel)',
+                    isFiltering
+                        ? 'Recent Orders • $filterLabel ($periodLabel)'
+                        : 'Recent Orders ($periodLabel)',
                     style: TextStyle(
                       fontSize: isMobile ? 14 : 15,
                       fontWeight: FontWeight.bold,
@@ -676,17 +789,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: AppColors.lightGrey,
+                    color: isFiltering ? filterColor.withAlpha(25) : AppColors.lightGrey,
                     borderRadius: BorderRadius.circular(12),
+                    border: isFiltering ? Border.all(color: filterColor.withAlpha(90)) : null,
                   ),
                   child: Text(
-                    totalCount > 0
-                        ? 'Showing ${orders.length} of $totalCount'
-                        : '0 orders',
-                    style: const TextStyle(
+                    isFiltering
+                        ? '$displayTotalCount $filterLabel orders'
+                        : (totalCount > 0 ? 'Showing ${orders.length} of $totalCount' : '0 orders'),
+                    style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.textMuted,
+                      color: isFiltering ? filterColor : AppColors.textMuted,
                     ),
                   ),
                 ),
@@ -694,7 +808,62 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
             const Divider(height: 18),
 
-            if (paginatedState.isLoading) ...[
+            // Active Filter Chip Bar
+            if (isFiltering) ...[
+              Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                decoration: BoxDecoration(
+                  color: filterColor.withAlpha(20),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: filterColor.withAlpha(80)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(filterIcon, size: 16, color: filterColor),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Filtered: $filterLabel Orders ($displayTotalCount)',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: filterColor,
+                        ),
+                      ),
+                    ),
+                    InkWell(
+                      onTap: onClearFilter,
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: filterColor,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            Text(
+                              'Show All',
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            SizedBox(width: 3),
+                            Icon(Icons.close, size: 12, color: Colors.white),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
+            if (paginatedState.isLoading && !isFiltering) ...[
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 36),
                 child: Center(
@@ -705,10 +874,32 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 28),
                 child: Center(
-                  child: Text(
-                    'No orders recorded in this period ($periodLabel).',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isFiltering ? Icons.filter_alt_off : Icons.receipt_long,
+                        size: 32,
+                        color: AppColors.textMuted,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        isFiltering
+                            ? 'No $filterLabel orders found for this period ($periodLabel).'
+                            : 'No orders recorded in this period ($periodLabel).',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
+                      ),
+                      if (isFiltering) ...[
+                        const SizedBox(height: 10),
+                        TextButton.icon(
+                          onPressed: onClearFilter,
+                          icon: const Icon(Icons.refresh, size: 16),
+                          label: const Text('Show All Orders'),
+                          style: TextButton.styleFrom(foregroundColor: AppColors.primaryRed),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
               ),
@@ -846,43 +1037,45 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 },
               ),
 
-              // Lazy loading footer / Next batch button
-              const SizedBox(height: 12),
-              if (paginatedState.isLoadingMore) ...[
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Center(
-                    child: SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(strokeWidth: 2.2, color: AppColors.primaryRed),
+              // Lazy loading footer / Next batch button (only shown when not filtering)
+              if (!isFiltering) ...[
+                const SizedBox(height: 12),
+                if (paginatedState.isLoadingMore) ...[
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Center(
+                      child: SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(strokeWidth: 2.2, color: AppColors.primaryRed),
+                      ),
                     ),
                   ),
-                ),
-              ] else if (paginatedState.hasMore) ...[
-                Center(
-                  child: TextButton.icon(
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColors.primaryRed,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                    ),
-                    icon: const Icon(Icons.expand_more, size: 18),
-                    label: const Text('Load More Orders (10 next)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                    onPressed: () {
-                      ref.read(dashboardOrdersPaginationProvider.notifier).fetchNextBatch();
-                    },
-                  ),
-                ),
-              ] else if (orders.length >= 10) ...[
-                Center(
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 6),
-                    child: Text(
-                      'All ${orders.length} orders loaded',
-                      style: const TextStyle(fontSize: 11, color: AppColors.textMuted, fontStyle: FontStyle.italic),
+                ] else if (paginatedState.hasMore) ...[
+                  Center(
+                    child: TextButton.icon(
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.primaryRed,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                      ),
+                      icon: const Icon(Icons.expand_more, size: 18),
+                      label: const Text('Load More Orders (10 next)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                      onPressed: () {
+                        ref.read(dashboardOrdersPaginationProvider.notifier).fetchNextBatch();
+                      },
                     ),
                   ),
-                ),
+                ] else if (orders.length >= 10) ...[
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Text(
+                        'All ${orders.length} orders loaded',
+                        style: const TextStyle(fontSize: 11, color: AppColors.textMuted, fontStyle: FontStyle.italic),
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ],
           ],
