@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart' show DocumentSnapshot;
 import '../models/category_model.dart';
 import '../models/product_model.dart';
 import '../models/order_model.dart';
@@ -113,6 +114,45 @@ class CafeRepository {
       }
     } catch (_) {}
     return await _localStorage.getOrders();
+  }
+
+  Future<PaginatedOrdersResult> getOrdersPaginated({
+    int limit = 10,
+    DocumentSnapshot? startAfterDoc,
+    DateTime? startDate,
+    DateTime? endDate,
+    int offset = 0,
+  }) async {
+    if (_firebaseService.isAvailable) {
+      try {
+        final result = await _firebaseService.getOrdersPaginated(
+          limit: limit,
+          startAfterDoc: startAfterDoc,
+          startDate: startDate,
+          endDate: endDate,
+        );
+        if (result.orders.isNotEmpty || result.hasMore) {
+          return result;
+        }
+      } catch (_) {}
+    }
+
+    // Fallback: LocalStorage pagination
+    final all = await _localStorage.getOrders();
+    all.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final filtered = all.where((o) {
+      if (startDate != null && o.createdAt.isBefore(startDate)) return false;
+      if (endDate != null && o.createdAt.isAfter(endDate)) return false;
+      return true;
+    }).toList();
+
+    final paged = filtered.skip(offset).take(limit).toList();
+    return PaginatedOrdersResult(
+      orders: paged,
+      lastDocument: null,
+      hasMore: (offset + paged.length) < filtered.length,
+      totalCount: filtered.length,
+    );
   }
 
   Future<String> generateNextOrderNumber() async {

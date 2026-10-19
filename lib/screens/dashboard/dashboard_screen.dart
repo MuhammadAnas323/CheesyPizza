@@ -2,31 +2,94 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/reports_provider.dart';
 import '../../providers/order_provider.dart';
+import '../../providers/paginated_orders_provider.dart';
 import '../../models/order_model.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/currency_formatter.dart';
 import '../../core/utils/date_formatter.dart';
 import '../orders/widgets/order_details_dialog.dart';
 
-class DashboardScreen extends ConsumerWidget {
+class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
+
+  @override
+  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends ConsumerState<DashboardScreen> {
+  final ScrollController _scrollController = ScrollController();
+  ReportTimePeriod? _lastPeriod;
+  DateTimeRange? _lastCustomRange;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadInitialData();
+    });
+  }
+
+  void _onScroll() {
+    if (_scrollController.hasClients) {
+      final threshold = _scrollController.position.maxScrollExtent - 200;
+      if (_scrollController.position.pixels >= threshold) {
+        ref.read(dashboardOrdersPaginationProvider.notifier).fetchNextBatch();
+      }
+    }
+  }
+
+  void _loadInitialData() {
+    final period = ref.read(reportTimePeriodProvider);
+    final customRange = ref.read(customDateRangeProvider);
+    _lastPeriod = period;
+    _lastCustomRange = customRange;
+    final filter = DateRangeFilter.forPeriod(period, customRange);
+    ref.read(dashboardOrdersPaginationProvider.notifier).fetchFirstBatch(filter);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   void _showOrderDetailsDialog(BuildContext context, OrderModel order) {
     OrderDetailsDialog.show(context, order);
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final selectedPeriod = ref.watch(reportTimePeriodProvider);
-    final reportData = ref.watch(filteredSalesReportProvider);
     final customRange = ref.watch(customDateRangeProvider);
-    final ordersAsync = ref.watch(orderNotifierProvider);
+    final reportData = ref.watch(filteredSalesReportProvider);
+    final paginatedOrders = ref.watch(dashboardOrdersPaginationProvider);
+
+    // Watch for period or date range changes and reload pagination batch
+    if (_lastPeriod != selectedPeriod || _lastCustomRange != customRange) {
+      _lastPeriod = selectedPeriod;
+      _lastCustomRange = customRange;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final filter = DateRangeFilter.forPeriod(selectedPeriod, customRange);
+        ref.read(dashboardOrdersPaginationProvider.notifier).fetchFirstBatch(filter);
+      });
+    }
+
+    // Also auto-refresh pagination when order changes occur in realtime
+    ref.listen(orderNotifierProvider, (previous, next) {
+      if (previous != null && next is AsyncData) {
+        final filter = DateRangeFilter.forPeriod(selectedPeriod, customRange);
+        ref.read(dashboardOrdersPaginationProvider.notifier).fetchFirstBatch(filter);
+      }
+    });
 
     return Scaffold(
       body: LayoutBuilder(
         builder: (context, constraints) {
           final isMobile = constraints.maxWidth < 650;
           return SingleChildScrollView(
+            controller: _scrollController,
             padding: EdgeInsets.all(isMobile ? 12 : 20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -75,7 +138,7 @@ class DashboardScreen extends ConsumerWidget {
                 ),
                 SizedBox(height: isMobile ? 14 : 20),
 
-                // Period Selector Chips (Daily, Weekly, Monthly, Custom)
+                // Period Selector Chips (Today, Weekly, Monthly, Custom)
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
@@ -116,38 +179,89 @@ class DashboardScreen extends ConsumerWidget {
                 ),
                 SizedBox(height: isMobile ? 16 : 20),
 
-                // 1. Primary Metrics (Completed Sales, Completed Orders)
-                GridView.count(
-                  crossAxisCount: constraints.maxWidth > 700 ? 2 : 1,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisSpacing: 14,
-                  mainAxisSpacing: 14,
-                  childAspectRatio: constraints.maxWidth > 700 ? 2.4 : 2.5,
+                // -----------------------------------------------------------
+                // SUMMARY CARDS: Exactly Four Cards in Two Rows (Two per row)
+                // -----------------------------------------------------------
+                Column(
                   children: [
-                    _buildMetricCard(
-                      title: "Completed Sales (${selectedPeriod.label})",
-                      value: CurrencyFormatter.format(reportData.totalRevenue),
-                      icon: Icons.payments,
-                      iconColor: AppColors.primaryRed,
-                      bgColor: AppColors.lightRed,
-                      subtitle: "Tap for Cash & Account details",
-                      onTap: () => _showSalesDetailDialog(context, reportData, selectedPeriod.label),
+                    // ROW 1: Today's Sales & Total Completed Orders
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildMetricCard(
+                            title: "Today's Sales",
+                            value: CurrencyFormatter.format(reportData.todaySales),
+                            icon: Icons.payments,
+                            iconColor: AppColors.primaryRed,
+                            bgColor: AppColors.lightRed,
+                            subtitle: "Tap for breakdown",
+                            isMobile: isMobile,
+                            onTap: () => _showSalesDetailDialog(
+                              context,
+                              reportData,
+                              "Today",
+                              reportData.todaySales,
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: isMobile ? 8 : 14),
+                        Expanded(
+                          child: _buildMetricCard(
+                            title: "Total Completed Orders",
+                            value: "${reportData.totalOrdersCount}",
+                            icon: Icons.check_circle,
+                            iconColor: AppColors.success,
+                            bgColor: AppColors.successLight,
+                            subtitle: "${selectedPeriod.label} completed",
+                            isMobile: isMobile,
+                          ),
+                        ),
+                      ],
                     ),
-                    _buildMetricCard(
-                      title: "Completed Orders (${selectedPeriod.label})",
-                      value: "${reportData.totalOrdersCount}",
-                      icon: Icons.check_circle,
-                      iconColor: AppColors.success,
-                      bgColor: AppColors.successLight,
-                      subtitle: "Successfully served & paid",
+                    SizedBox(height: isMobile ? 8 : 14),
+
+                    // ROW 2: Cancelled Orders & On Table Orders
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildMetricCard(
+                            title: "Cancelled Orders",
+                            value: "${reportData.cancelledOrdersCount}",
+                            icon: Icons.cancel_outlined,
+                            iconColor: Colors.red.shade700,
+                            bgColor: Colors.red.shade50,
+                            subtitle: "${selectedPeriod.label} cancelled",
+                            isMobile: isMobile,
+                          ),
+                        ),
+                        SizedBox(width: isMobile ? 8 : 14),
+                        Expanded(
+                          child: _buildMetricCard(
+                            title: "On Table Orders",
+                            value: "${reportData.onTableOrdersCount}",
+                            icon: Icons.table_restaurant_outlined,
+                            iconColor: Colors.amber.shade900,
+                            bgColor: Colors.amber.shade50,
+                            subtitle: "Active on table",
+                            isMobile: isMobile,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
                 SizedBox(height: isMobile ? 20 : 24),
 
-                // 2. Recent Orders List
-                _buildRecentOrdersCard(context, ordersAsync),
+                // -----------------------------------------------------------
+                // RECENT ORDERS LIST WITH LAZY LOADING / PAGINATION (10/batch)
+                // -----------------------------------------------------------
+                _buildRecentOrdersCard(
+                  context: context,
+                  isMobile: isMobile,
+                  periodLabel: selectedPeriod.label,
+                  totalCount: reportData.totalPeriodOrdersCount,
+                  paginatedState: paginatedOrders,
+                ),
               ],
             ),
           );
@@ -164,6 +278,7 @@ class DashboardScreen extends ConsumerWidget {
     required Color bgColor,
     required String subtitle,
     VoidCallback? onTap,
+    bool isMobile = false,
   }) {
     return Card(
       elevation: 1.5,
@@ -171,19 +286,19 @@ class DashboardScreen extends ConsumerWidget {
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(isMobile ? 10 : 14),
           child: Row(
             children: [
               Container(
-                width: 50,
-                height: 50,
+                width: isMobile ? 38 : 46,
+                height: isMobile ? 38 : 46,
                 decoration: BoxDecoration(
                   color: bgColor,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(icon, color: iconColor, size: 26),
+                child: Icon(icon, color: iconColor, size: isMobile ? 20 : 24),
               ),
-              const SizedBox(width: 14),
+              SizedBox(width: isMobile ? 8 : 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -194,26 +309,29 @@ class DashboardScreen extends ConsumerWidget {
                         Expanded(
                           child: Text(
                             title,
-                            style: const TextStyle(
-                              fontSize: 12,
+                            style: TextStyle(
+                              fontSize: isMobile ? 10.5 : 12,
                               color: AppColors.textMuted,
-                              fontWeight: FontWeight.w500,
+                              fontWeight: FontWeight.w600,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        if (onTap != null)
-                          const Icon(Icons.info_outline, size: 14, color: AppColors.primaryRed),
+                        if (onTap != null) ...[
+                          const SizedBox(width: 4),
+                          const Icon(Icons.info_outline, size: 13, color: AppColors.primaryRed),
+                        ],
                       ],
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 3),
                     FittedBox(
                       fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
                       child: Text(
                         value,
-                        style: const TextStyle(
-                          fontSize: 20,
+                        style: TextStyle(
+                          fontSize: isMobile ? 16 : 20,
                           fontWeight: FontWeight.bold,
                           color: AppColors.textDark,
                         ),
@@ -223,7 +341,7 @@ class DashboardScreen extends ConsumerWidget {
                     Text(
                       subtitle,
                       style: TextStyle(
-                        fontSize: 10.5,
+                        fontSize: isMobile ? 9.5 : 10.5,
                         color: AppColors.textMuted.withAlpha(220),
                       ),
                       maxLines: 1,
@@ -239,7 +357,12 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  void _showSalesDetailDialog(BuildContext context, SalesReportData reportData, String periodLabel) {
+  void _showSalesDetailDialog(
+    BuildContext context,
+    SalesReportData reportData,
+    String periodLabel,
+    double displayedRevenue,
+  ) {
     showDialog(
       context: context,
       builder: (ctx) => Dialog(
@@ -299,7 +422,7 @@ class DashboardScreen extends ConsumerWidget {
               ),
 
               // Scrollable Content
-              Expanded(
+              Flexible(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(18),
                   child: Column(
@@ -316,9 +439,9 @@ class DashboardScreen extends ConsumerWidget {
                         ),
                         child: Column(
                           children: [
-                            const Text(
-                              'Total Completed Sales',
-                              style: TextStyle(
+                            Text(
+                              '$periodLabel Total Completed Sales',
+                              style: const TextStyle(
                                 fontSize: 12.5,
                                 color: AppColors.textMuted,
                                 fontWeight: FontWeight.w600,
@@ -328,7 +451,7 @@ class DashboardScreen extends ConsumerWidget {
                             FittedBox(
                               fit: BoxFit.scaleDown,
                               child: Text(
-                                CurrencyFormatter.format(reportData.totalRevenue),
+                                CurrencyFormatter.format(displayedRevenue),
                                 style: const TextStyle(
                                   fontSize: 24,
                                   fontWeight: FontWeight.bold,
@@ -509,168 +632,249 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildRecentOrdersCard(BuildContext context, AsyncValue<List<dynamic>> ordersAsync) {
+  Widget _buildRecentOrdersCard({
+    required BuildContext context,
+    required bool isMobile,
+    required String periodLabel,
+    required int totalCount,
+    required PaginatedOrdersState paginatedState,
+  }) {
+    final orders = paginatedState.orders;
+
     return Card(
       elevation: 1.5,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(isMobile ? 12 : 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: const [
-                Text(
-                  'Recent Orders',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textDark,
+              children: [
+                Expanded(
+                  child: Text(
+                    'Recent Orders ($periodLabel)',
+                    style: TextStyle(
+                      fontSize: isMobile ? 14 : 15,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textDark,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: AppColors.lightGrey,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    totalCount > 0
+                        ? 'Showing ${orders.length} of $totalCount'
+                        : '0 orders',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textMuted,
+                    ),
                   ),
                 ),
               ],
             ),
             const Divider(height: 18),
-            ordersAsync.when(
-              data: (orders) {
-                if (orders.isEmpty) {
-                  return const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 28),
-                    child: Center(
-                      child: Text(
-                        'No orders recorded yet. Create one from the Orders section.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: AppColors.textMuted, fontSize: 13),
-                      ),
-                    ),
-                  );
-                }
-                final recent = orders.take(6).toList();
-                return ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: recent.length,
-                  separatorBuilder: (_, _) => const Divider(height: 12),
-                  itemBuilder: (_, index) {
-                    final order = recent[index] as OrderModel;
-                    final isCompleted = order.status.toLowerCase() == 'completed';
 
-                    return InkWell(
-                      borderRadius: BorderRadius.circular(8),
-                      onTap: () => _showOrderDetailsDialog(context, order),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                        child: Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 17,
-                              backgroundColor: isCompleted
-                                  ? AppColors.successLight
-                                  : AppColors.lightRed,
-                              child: Text(
-                                order.orderNumber.replaceAll('#CP-', ''),
-                                style: TextStyle(
-                                  fontSize: 10.5,
-                                  fontWeight: FontWeight.bold,
-                                  color: isCompleted
-                                      ? AppColors.success
-                                      : AppColors.primaryRed,
-                                ),
+            if (paginatedState.isLoading) ...[
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 36),
+                child: Center(
+                  child: CircularProgressIndicator(color: AppColors.primaryRed),
+                ),
+              ),
+            ] else if (orders.isEmpty) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 28),
+                child: Center(
+                  child: Text(
+                    'No orders recorded in this period ($periodLabel).',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
+                  ),
+                ),
+              ),
+            ] else ...[
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: orders.length,
+                separatorBuilder: (_, _) => const Divider(height: 12),
+                itemBuilder: (_, index) {
+                  final order = orders[index];
+                  final statusLower = order.status.trim().toLowerCase();
+                  final isCompleted = statusLower == 'completed';
+                  final isCancelled = statusLower == 'cancelled';
+                  final isOnTable = statusLower == 'on table';
+
+                  Color badgeColor = AppColors.warning;
+                  Color badgeBg = AppColors.warningLight;
+                  if (isCompleted) {
+                    badgeColor = AppColors.success;
+                    badgeBg = AppColors.successLight;
+                  } else if (isCancelled) {
+                    badgeColor = Colors.red.shade700;
+                    badgeBg = Colors.red.shade50;
+                  } else if (isOnTable) {
+                    badgeColor = Colors.amber.shade900;
+                    badgeBg = Colors.amber.shade50;
+                  }
+
+                  return InkWell(
+                    borderRadius: BorderRadius.circular(8),
+                    onTap: () => _showOrderDetailsDialog(context, order),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 17,
+                            backgroundColor: isCompleted
+                                ? AppColors.successLight
+                                : (isCancelled ? Colors.red.shade50 : AppColors.lightRed),
+                            child: Text(
+                              order.orderNumber.replaceAll('#CP-', ''),
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.bold,
+                                color: isCompleted
+                                    ? AppColors.success
+                                    : (isCancelled ? Colors.red.shade700 : AppColors.primaryRed),
                               ),
                             ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Use Wrap instead of Row to prevent horizontal pixel overflow
-                                  Wrap(
-                                    spacing: 5,
-                                    runSpacing: 2,
-                                    crossAxisAlignment: WrapCrossAlignment.center,
-                                    children: [
-                                      Text(
-                                        order.orderNumber,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 12.5,
-                                        ),
-                                      ),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 4, vertical: 1),
-                                        decoration: BoxDecoration(
-                                          color: AppColors.lightGrey,
-                                          borderRadius: BorderRadius.circular(4),
-                                        ),
-                                        child: Text(
-                                          order.orderType.label,
-                                          style: const TextStyle(
-                                            fontSize: 9.5,
-                                            fontWeight: FontWeight.w600,
-                                            color: AppColors.mediumGrey,
-                                          ),
-                                        ),
-                                      ),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 4, vertical: 1),
-                                        decoration: BoxDecoration(
-                                          color: isCompleted
-                                              ? AppColors.successLight
-                                              : AppColors.warningLight,
-                                          borderRadius: BorderRadius.circular(4),
-                                        ),
-                                        child: Text(
-                                          order.status,
-                                          style: TextStyle(
-                                            fontSize: 9.5,
-                                            fontWeight: FontWeight.bold,
-                                            color: isCompleted
-                                                ? AppColors.success
-                                                : AppColors.warning,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    '${order.totalItemsSold} items • ${DateFormatter.formatRelative(order.createdAt)}',
-                                    style: const TextStyle(
-                                      fontSize: 10.5,
-                                      color: AppColors.textMuted,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
+                                Wrap(
+                                  spacing: 5,
+                                  runSpacing: 2,
+                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                  children: [
+                                    Text(
+                                      order.orderNumber,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12.5,
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 5, vertical: 1.5),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.lightGrey,
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        order.orderType.label,
+                                        style: const TextStyle(
+                                          fontSize: 9.5,
+                                          fontWeight: FontWeight.w600,
+                                          color: AppColors.mediumGrey,
+                                        ),
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 5, vertical: 1.5),
+                                      decoration: BoxDecoration(
+                                        color: badgeBg,
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        order.status,
+                                        style: TextStyle(
+                                          fontSize: 9.5,
+                                          fontWeight: FontWeight.bold,
+                                          color: badgeColor,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 2),
                                 Text(
-                                  CurrencyFormatter.format(order.totalAmount),
+                                  '${order.totalItemsSold} items • ${DateFormatter.formatRelative(order.createdAt)}',
                                   style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12.5,
-                                    color: AppColors.primaryRed,
+                                    fontSize: 10.5,
+                                    color: AppColors.textMuted,
                                   ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ],
                             ),
-                          ],
-                        ),
+                          ),
+                          const SizedBox(width: 8),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                CurrencyFormatter.format(order.totalAmount),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12.5,
+                                  color: AppColors.primaryRed,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                    );
-                  },
-                );
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (_, _) => const Text('Error loading orders'),
-            ),
+                    ),
+                  );
+                },
+              ),
+
+              // Lazy loading footer / Next batch button
+              const SizedBox(height: 12),
+              if (paginatedState.isLoadingMore) ...[
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Center(
+                    child: SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(strokeWidth: 2.2, color: AppColors.primaryRed),
+                    ),
+                  ),
+                ),
+              ] else if (paginatedState.hasMore) ...[
+                Center(
+                  child: TextButton.icon(
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.primaryRed,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    ),
+                    icon: const Icon(Icons.expand_more, size: 18),
+                    label: const Text('Load More Orders (10 next)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                    onPressed: () {
+                      ref.read(dashboardOrdersPaginationProvider.notifier).fetchNextBatch();
+                    },
+                  ),
+                ),
+              ] else if (orders.length >= 10) ...[
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text(
+                      'All ${orders.length} orders loaded',
+                      style: const TextStyle(fontSize: 11, color: AppColors.textMuted, fontStyle: FontStyle.italic),
+                    ),
+                  ),
+                ),
+              ],
+            ],
           ],
         ),
       ),

@@ -10,6 +10,20 @@ import '../models/order_model.dart';
 import '../models/expense_model.dart';
 import '../firebase_options.dart';
 
+class PaginatedOrdersResult {
+  final List<OrderModel> orders;
+  final DocumentSnapshot? lastDocument;
+  final bool hasMore;
+  final int totalCount;
+
+  const PaginatedOrdersResult({
+    required this.orders,
+    this.lastDocument,
+    required this.hasMore,
+    this.totalCount = 0,
+  });
+}
+
 class FirebaseService {
   static final FirebaseService _instance = FirebaseService._internal();
   factory FirebaseService() => _instance;
@@ -193,6 +207,45 @@ class FirebaseService {
     } catch (e) {
       dev.log('Error fetching orders from Firestore: $e', name: 'FirebaseService');
       return [];
+    }
+  }
+
+  Future<PaginatedOrdersResult> getOrdersPaginated({
+    int limit = 10,
+    DocumentSnapshot? startAfterDoc,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    if (!isAvailable || _ordersCol == null) {
+      return const PaginatedOrdersResult(orders: [], hasMore: false);
+    }
+    try {
+      Query query = _ordersCol!.orderBy('createdAt', descending: true);
+      if (startDate != null) {
+        query = query.where('createdAt', isGreaterThanOrEqualTo: startDate.toIso8601String());
+      }
+      if (endDate != null) {
+        query = query.where('createdAt', isLessThanOrEqualTo: endDate.toIso8601String());
+      }
+      if (startAfterDoc != null) {
+        query = query.startAfterDocument(startAfterDoc);
+      }
+      query = query.limit(limit);
+      final snapshot = await query.get();
+      final orders = snapshot.docs
+          .map((doc) => OrderModel.fromMap(
+              Map<String, dynamic>.from(doc.data() as Map), doc.id))
+          .toList();
+
+      return PaginatedOrdersResult(
+        orders: orders,
+        lastDocument: snapshot.docs.isNotEmpty ? snapshot.docs.last : null,
+        hasMore: orders.length == limit,
+        totalCount: orders.length,
+      );
+    } catch (e) {
+      dev.log('Error fetching paginated orders from Firestore: $e', name: 'FirebaseService');
+      return const PaginatedOrdersResult(orders: [], hasMore: false);
     }
   }
 
