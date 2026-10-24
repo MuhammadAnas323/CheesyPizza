@@ -46,7 +46,7 @@ class UpdateService {
       await remoteConfig.setConfigSettings(
         RemoteConfigSettings(
           fetchTimeout: const Duration(seconds: 10),
-          minimumFetchInterval: const Duration(hours: 1),
+          minimumFetchInterval: const Duration(minutes: 5),
         ),
       );
 
@@ -73,15 +73,21 @@ class UpdateService {
       final updateUrl = remoteConfig.getString('update_url');
 
       final hasUpdate = _isVersionGreater(latestVersion, currentVersion);
-      final isForce = isForceUpdateFlag ||
+      final needsForceByMinVersion =
           _isVersionGreater(minRequiredVersion, currentVersion);
+
+      // IMPORTANT: Never show the dialog if the user is already on the latest
+      // version AND meets the min required version — even if is_force_update
+      // is still true in Remote Config (e.g. admin forgot to turn it off).
+      if (!hasUpdate && !needsForceByMinVersion) return null;
+
+      // isForce only controls whether the dialog is dismissible, not visibility.
+      final isForce = isForceUpdateFlag || needsForceByMinVersion;
 
       dev.log(
         'App Version: $currentVersion, Latest: $latestVersion, Min: $minRequiredVersion, HasUpdate: $hasUpdate, Force: $isForce',
         name: 'UpdateService',
       );
-
-      if (!hasUpdate && !isForce) return null;
 
       return AppUpdateInfo(
         hasUpdate: hasUpdate,

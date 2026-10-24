@@ -82,6 +82,14 @@ class PrinterService {
                     child: pw.Text('Customer: ${order.customerName}',
                         style: const pw.TextStyle(fontSize: 8)),
                   ),
+                if (order.guestName != null && order.guestName!.isNotEmpty) ...[
+                  pw.SizedBox(height: 2),
+                  pw.Align(
+                    alignment: pw.Alignment.centerLeft,
+                    child: pw.Text('Guest / Free: ${order.guestName}',
+                        style: const pw.TextStyle(fontSize: 8)),
+                  ),
+                ],
                 ],
                 if (order.customerPhone != null && order.customerPhone!.isNotEmpty) ...[
                   pw.SizedBox(height: 1),
@@ -350,6 +358,11 @@ class PrinterService {
                 if (order.customerName != null && order.customerName!.isNotEmpty) ...[
                   pw.SizedBox(height: 2),
                   pw.Text('Customer: ${order.customerName}${order.customerPhone != null && order.customerPhone!.isNotEmpty ? ' (${order.customerPhone})' : ''}',
+                      style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold)),
+                ],
+                if (order.guestName != null && order.guestName!.isNotEmpty) ...[
+                  pw.SizedBox(height: 2),
+                  pw.Text('Guest / Free: ${order.guestName}',
                       style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold)),
                 ],
                 if (order.tableOrAddress != null && order.tableOrAddress!.isNotEmpty) ...[

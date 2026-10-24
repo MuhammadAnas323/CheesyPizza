@@ -181,6 +181,22 @@ class CafeRepository {
     return order;
   }
 
+  Future<void> updateOrder(OrderModel order) async {
+    if (_firebaseService.isAvailable) {
+      try {
+        await _firebaseService.saveOrder(order);
+      } catch (_) {}
+    }
+    final list = await _localStorage.getOrders();
+    final index = list.indexWhere((o) => o.id == order.id);
+    if (index >= 0) {
+      list[index] = order;
+    } else {
+      list.insert(0, order);
+    }
+    await _localStorage.saveOrders(list);
+  }
+
   Future<void> updateOrderStatus(String orderId, String newStatus, {String? paymentMethod}) async {
     final orders = await getOrders();
     final index = orders.indexWhere((o) => o.id == orderId);

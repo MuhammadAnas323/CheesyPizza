@@ -998,9 +998,47 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                           fontSize: 9.5,
                                           fontWeight: FontWeight.bold,
                                           color: badgeColor,
-                                        ),
-                                      ),
-                                    ),
+                                         ),
+                                       ),
+                                     ),
+                                     if (order.customerName != null && order.customerName!.trim().isNotEmpty)
+                                       Container(
+                                         padding: const EdgeInsets.symmetric(
+                                             horizontal: 5, vertical: 1.5),
+                                         decoration: BoxDecoration(
+                                           color: Colors.blueGrey.shade50,
+                                           borderRadius: BorderRadius.circular(4),
+                                         ),
+                                         child: Text(
+                                           order.customerName!.trim(),
+                                           style: const TextStyle(
+                                             fontSize: 9.5,
+                                             fontWeight: FontWeight.w600,
+                                             color: AppColors.textDark,
+                                           ),
+                                           maxLines: 1,
+                                           overflow: TextOverflow.ellipsis,
+                                         ),
+                                       ),
+                                     if (order.guestName != null && order.guestName!.trim().isNotEmpty)
+                                       Container(
+                                         padding: const EdgeInsets.symmetric(
+                                             horizontal: 5, vertical: 1.5),
+                                         decoration: BoxDecoration(
+                                           color: Colors.purple.shade50,
+                                           borderRadius: BorderRadius.circular(4),
+                                         ),
+                                         child: Text(
+                                           'Guest: ${order.guestName!.trim()}',
+                                           style: TextStyle(
+                                             fontSize: 9.5,
+                                             fontWeight: FontWeight.bold,
+                                             color: Colors.purple.shade800,
+                                           ),
+                                           maxLines: 1,
+                                           overflow: TextOverflow.ellipsis,
+                                         ),
+                                       ),
                                   ],
                                 ),
                                 const SizedBox(height: 2),
@@ -1052,14 +1090,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     ),
                   ),
                 ] else if (paginatedState.hasMore) ...[
+                  const SizedBox(height: 8),
                   Center(
-                    child: TextButton.icon(
-                      style: TextButton.styleFrom(
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.primaryRed,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                        side: const BorderSide(color: AppColors.primaryRed, width: 1.4),
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
                       icon: const Icon(Icons.expand_more, size: 18),
-                      label: const Text('Load More Orders (10 next)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                      label: const Text(
+                        'See More',
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                      ),
                       onPressed: () {
                         ref.read(dashboardOrdersPaginationProvider.notifier).fetchNextBatch();
                       },

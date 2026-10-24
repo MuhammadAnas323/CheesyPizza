@@ -47,6 +47,11 @@ class OrderNotifier extends StateNotifier<AsyncValue<List<OrderModel>>> {
     await _repository.updateOrderStatus(orderId, newStatus, paymentMethod: paymentMethod);
   }
 
+  Future<void> updateOrder(OrderModel order) async {
+    await _repository.updateOrder(order);
+    await loadOrders();
+  }
+
   Future<void> deleteOrder(String orderId) async {
     await _repository.deleteOrder(orderId);
   }

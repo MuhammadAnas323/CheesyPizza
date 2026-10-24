@@ -177,6 +177,7 @@ class OrderModel {
   final double totalCost;
   final double estimatedProfit;
   final String? customerName;
+  final String? guestName; // Guest / Free Order Name for identification
   final String? customerPhone;
   final String? tableOrAddress;
   final String? discountPersonName; // Name of person receiving the discount
@@ -198,6 +199,7 @@ class OrderModel {
     required this.totalCost,
     required this.estimatedProfit,
     this.customerName,
+    this.guestName,
     this.customerPhone,
     this.tableOrAddress,
     this.discountPersonName,
@@ -206,6 +208,8 @@ class OrderModel {
   });
 
   int get totalItemsSold => items.fold(0, (sum, item) => sum + item.quantity);
+
+  static const Object _sentinel = Object();
 
   OrderModel copyWith({
     String? id,
@@ -221,10 +225,11 @@ class OrderModel {
     double? totalAmount,
     double? totalCost,
     double? estimatedProfit,
-    String? customerName,
-    String? customerPhone,
-    String? tableOrAddress,
-    String? discountPersonName,
+    Object? customerName = _sentinel,
+    Object? guestName = _sentinel,
+    Object? customerPhone = _sentinel,
+    Object? tableOrAddress = _sentinel,
+    Object? discountPersonName = _sentinel,
     String? status,
     String? paymentMethod,
   }) {
@@ -242,10 +247,11 @@ class OrderModel {
       totalAmount: totalAmount ?? this.totalAmount,
       totalCost: totalCost ?? this.totalCost,
       estimatedProfit: estimatedProfit ?? this.estimatedProfit,
-      customerName: customerName ?? this.customerName,
-      customerPhone: customerPhone ?? this.customerPhone,
-      tableOrAddress: tableOrAddress ?? this.tableOrAddress,
-      discountPersonName: discountPersonName ?? this.discountPersonName,
+      customerName: customerName == _sentinel ? this.customerName : customerName as String?,
+      guestName: guestName == _sentinel ? this.guestName : guestName as String?,
+      customerPhone: customerPhone == _sentinel ? this.customerPhone : customerPhone as String?,
+      tableOrAddress: tableOrAddress == _sentinel ? this.tableOrAddress : tableOrAddress as String?,
+      discountPersonName: discountPersonName == _sentinel ? this.discountPersonName : discountPersonName as String?,
       status: status ?? this.status,
       paymentMethod: paymentMethod ?? this.paymentMethod,
     );
@@ -267,6 +273,7 @@ class OrderModel {
       'totalCost': totalCost,
       'estimatedProfit': estimatedProfit,
       'customerName': customerName,
+      'guestName': guestName,
       'customerPhone': customerPhone,
       'tableOrAddress': tableOrAddress,
       'discountPersonName': discountPersonName,
@@ -308,6 +315,7 @@ class OrderModel {
       totalCost: totalCost,
       estimatedProfit: estimatedProfit,
       customerName: map['customerName'],
+      guestName: map['guestName'] ?? map['guestFreeOrderName'],
       customerPhone: map['customerPhone'],
       tableOrAddress: map['tableOrAddress'],
       discountPersonName: map['discountPersonName'],

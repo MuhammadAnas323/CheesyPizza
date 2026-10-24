@@ -43,6 +43,146 @@ class _OrdersHistoryScreenState extends ConsumerState<OrdersHistoryScreen> {
     OrderDetailsDialog.show(context, order);
   }
 
+  void _showOrderActionSheet(OrderModel order) {
+    final isCancelled = order.status.toLowerCase() == 'cancelled';
+    if (isCancelled) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cancelled orders cannot be updated.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetCtx) => Container(
+        constraints: const BoxConstraints(maxWidth: 480),
+        margin: EdgeInsets.only(
+          left: 14,
+          right: 14,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+        ),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(35),
+              blurRadius: 18,
+              offset: const Offset(0, -3),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                margin: const EdgeInsets.only(top: 10, bottom: 8),
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 18,
+                      backgroundColor: AppColors.primaryRed.withAlpha(20),
+                      child: const Icon(Icons.receipt_long, color: AppColors.primaryRed, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            order.orderNumber,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textDark),
+                          ),
+                          Text(
+                            '${order.status} • ${CurrencyFormatter.format(order.totalAmount)}',
+                            style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 20, color: AppColors.textMuted),
+                      onPressed: () => Navigator.pop(sheetCtx),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryRed.withAlpha(20),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.edit_note_rounded, color: AppColors.primaryRed, size: 22),
+                ),
+                title: const Text(
+                  'Update Order',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5, color: AppColors.textDark),
+                ),
+                subtitle: const Text(
+                  'Modify items, quantities, customer details, or discounts',
+                  style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                ),
+                trailing: const Icon(Icons.chevron_right, color: AppColors.textMuted, size: 20),
+                onTap: () {
+                  Navigator.pop(sheetCtx);
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (ctx) => NewOrderDialog(orderToEdit: order),
+                  );
+                },
+              ),
+              ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withAlpha(20),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.visibility_outlined, color: Colors.blue, size: 22),
+                ),
+                title: const Text(
+                  'View Order Details',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5, color: AppColors.textDark),
+                ),
+                subtitle: const Text(
+                  'Review items, receipt slip, and order history',
+                  style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                ),
+                trailing: const Icon(Icons.chevron_right, color: AppColors.textMuted, size: 20),
+                onTap: () {
+                  Navigator.pop(sheetCtx);
+                  _showOrderStatusDialog(order);
+                },
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final ordersAsync = ref.watch(orderNotifierProvider);
@@ -167,6 +307,10 @@ class _OrdersHistoryScreenState extends ConsumerState<OrdersHistoryScreen> {
                             order.orderNumber.toLowerCase().contains(query) ||
                             (order.customerName != null &&
                                 order.customerName!.toLowerCase().contains(query)) ||
+                            (order.guestName != null &&
+                                order.guestName!.toLowerCase().contains(query)) ||
+                            (order.guestName != null &&
+                                order.guestName!.toLowerCase().contains(query)) ||
                             (order.customerPhone != null &&
                                 order.customerPhone!.toLowerCase().contains(query));
                         return matchStatus && matchQuery;
@@ -196,6 +340,7 @@ class _OrdersHistoryScreenState extends ConsumerState<OrdersHistoryScreen> {
                             child: InkWell(
                               borderRadius: BorderRadius.circular(12),
                               onTap: () => _showOrderStatusDialog(order),
+                              onLongPress: () => _showOrderActionSheet(order),
                               child: Padding(
                                 padding: EdgeInsets.all(isMobile ? 10 : 14),
                                 child: isMobile
@@ -306,6 +451,56 @@ class _OrdersHistoryScreenState extends ConsumerState<OrdersHistoryScreen> {
                                                   ),
                                                 ),
                                               ),
+                                               if (order.customerName != null &&
+                                                   order.customerName!.trim().isNotEmpty)
+                                                 Container(
+                                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                   decoration: BoxDecoration(
+                                                     color: Colors.blueGrey.shade50,
+                                                     borderRadius: BorderRadius.circular(4),
+                                                     border: Border.all(color: Colors.blueGrey.shade200),
+                                                   ),
+                                                   child: Row(
+                                                     mainAxisSize: MainAxisSize.min,
+                                                     children: [
+                                                       const Icon(Icons.person, size: 10, color: AppColors.textDark),
+                                                       const SizedBox(width: 3),
+                                                       Text(
+                                                         order.customerName!.trim(),
+                                                         style: const TextStyle(
+                                                           fontSize: 10,
+                                                           fontWeight: FontWeight.bold,
+                                                           color: AppColors.textDark,
+                                                         ),
+                                                       ),
+                                                     ],
+                                                   ),
+                                                 ),
+                                               if (order.guestName != null &&
+                                                   order.guestName!.trim().isNotEmpty)
+                                                 Container(
+                                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                   decoration: BoxDecoration(
+                                                     color: Colors.purple.shade50,
+                                                     borderRadius: BorderRadius.circular(4),
+                                                     border: Border.all(color: Colors.purple.shade200),
+                                                   ),
+                                                   child: Row(
+                                                     mainAxisSize: MainAxisSize.min,
+                                                     children: [
+                                                       Icon(Icons.card_giftcard, size: 10, color: Colors.purple.shade700),
+                                                       const SizedBox(width: 3),
+                                                       Text(
+                                                         'Guest: ${order.guestName!.trim()}',
+                                                         style: TextStyle(
+                                                           fontSize: 10,
+                                                           fontWeight: FontWeight.bold,
+                                                           color: Colors.purple.shade800,
+                                                         ),
+                                                       ),
+                                                     ],
+                                                   ),
+                                                 ),
                                               if (order.discountPersonName != null &&
                                                   order.discountPersonName!.trim().isNotEmpty)
                                                 Container(
@@ -536,6 +731,24 @@ class _OrdersHistoryScreenState extends ConsumerState<OrdersHistoryScreen> {
                                             ],
                                           ),
                                           const SizedBox(width: 14),
+                                           OutlinedButton.icon(
+                                             style: OutlinedButton.styleFrom(
+                                               padding: const EdgeInsets.symmetric(
+                                                   horizontal: 10, vertical: 8),
+                                               foregroundColor: AppColors.primaryRed,
+                                               side: const BorderSide(color: AppColors.primaryRed),
+                                             ),
+                                             icon: const Icon(Icons.edit, size: 15),
+                                             label: const Text("Edit"),
+                                             onPressed: () {
+                                               showDialog(
+                                                 context: context,
+                                                 barrierDismissible: false,
+                                                 builder: (ctx) => NewOrderDialog(orderToEdit: order),
+                                               );
+                                             },
+                                           ),
+                                           const SizedBox(width: 8),
                                           OutlinedButton.icon(
                                             style: OutlinedButton.styleFrom(
                                               padding: const EdgeInsets.symmetric(
@@ -569,7 +782,8 @@ class _OrdersHistoryScreenState extends ConsumerState<OrdersHistoryScreen> {
 
 /// New Order Dialog / Screen
 class NewOrderDialog extends ConsumerStatefulWidget {
-  const NewOrderDialog({super.key});
+  final OrderModel? orderToEdit;
+  const NewOrderDialog({super.key, this.orderToEdit});
 
   @override
   ConsumerState<NewOrderDialog> createState() => _NewOrderDialogState();
@@ -580,6 +794,7 @@ class _NewOrderDialogState extends ConsumerState<NewOrderDialog> {
   OrderType _orderType = OrderType.dineIn;
   String _paymentMethod = 'Cash';
   final TextEditingController _customerNameController = TextEditingController();
+  final TextEditingController _guestNameController = TextEditingController();
   final TextEditingController _customerPhoneController = TextEditingController();
   final TextEditingController _extraChargesController = TextEditingController(text: '0');
   final TextEditingController _extraChargesNoteController = TextEditingController();
@@ -588,8 +803,28 @@ class _NewOrderDialogState extends ConsumerState<NewOrderDialog> {
   String? _selectedCategoryFilter; // null means 'All'
 
   @override
+  @override
+  void initState() {
+    super.initState();
+    if (widget.orderToEdit != null) {
+      final o = widget.orderToEdit!;
+      _cartItems.addAll(o.items);
+      _orderType = o.orderType;
+      _paymentMethod = o.paymentMethod;
+      _customerNameController.text = o.customerName ?? "";
+      _guestNameController.text = o.guestName ?? "";
+      _customerPhoneController.text = o.customerPhone ?? "";
+      _extraChargesController.text = o.extraCharges > 0 ? o.extraCharges.toStringAsFixed(0) : "0";
+      _extraChargesNoteController.text = o.extraChargesNote ?? "";
+      _discountPercentController.text = o.discountPercentage > 0 ? o.discountPercentage.toStringAsFixed(0) : "0";
+      _discountPersonController.text = o.discountPersonName ?? "";
+    }
+  }
+
+  @override
   void dispose() {
     _customerNameController.dispose();
+    _guestNameController.dispose();
     _customerPhoneController.dispose();
     _extraChargesController.dispose();
     _extraChargesNoteController.dispose();
@@ -686,6 +921,58 @@ class _NewOrderDialogState extends ConsumerState<NewOrderDialog> {
       return;
     }
 
+    final isEditing = widget.orderToEdit != null;
+    if (isEditing) {
+      final existing = widget.orderToEdit!;
+      final updated = existing.copyWith(
+        orderType: _orderType,
+        items: List.from(_cartItems),
+        subtotal: _subtotal,
+        discountPercentage: _discountPercentage,
+        discount: _discountAmount,
+        extraCharges: extraCharges,
+        extraChargesNote: _extraChargesNoteController.text.trim().isNotEmpty
+            ? _extraChargesNoteController.text.trim()
+            : null,
+        totalAmount: _totalBill,
+        totalCost: _totalCost,
+        estimatedProfit: _totalBill - _totalCost,
+        customerName: _customerNameController.text.trim().isNotEmpty
+            ? _customerNameController.text.trim()
+            : null,
+        guestName: _guestNameController.text.trim().isNotEmpty
+            ? _guestNameController.text.trim()
+            : null,
+        customerPhone: _customerPhoneController.text.trim().isNotEmpty
+            ? _customerPhoneController.text.trim()
+            : null,
+        discountPersonName: _discountAmount > 0 && _discountPersonController.text.trim().isNotEmpty
+            ? _discountPersonController.text.trim()
+            : null,
+        paymentMethod: _paymentMethod,
+      );
+
+      await ref.read(orderNotifierProvider.notifier).updateOrder(updated);
+
+      if (printSlip) {
+        try {
+          await PrinterService.printReceipt(updated);
+        } catch (e) {
+          debugPrint('Printing failed: $e');
+        }
+      }
+
+      if (!mounted) return;
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Order ${updated.orderNumber} updated successfully!'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+      return;
+    }
+
     final repo = ref.read(cafeRepositoryProvider);
     final orderNumber = await repo.generateNextOrderNumber();
 
@@ -705,6 +992,9 @@ class _NewOrderDialogState extends ConsumerState<NewOrderDialog> {
       estimatedProfit: _totalBill - _totalCost,
       customerName: _customerNameController.text.trim().isNotEmpty
           ? _customerNameController.text.trim()
+          : null,
+      guestName: _guestNameController.text.trim().isNotEmpty
+          ? _guestNameController.text.trim()
           : null,
       customerPhone: _customerPhoneController.text.trim().isNotEmpty
           ? _customerPhoneController.text.trim()
@@ -754,7 +1044,10 @@ class _NewOrderDialogState extends ConsumerState<NewOrderDialog> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       insetPadding: const EdgeInsets.all(12),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 1100, maxHeight: 750),
+        constraints: BoxConstraints(
+          maxWidth: 1100,
+          maxHeight: MediaQuery.of(context).size.height * 0.94,
+        ),
         child: Column(
           children: [
             // Header
@@ -768,8 +1061,8 @@ class _NewOrderDialogState extends ConsumerState<NewOrderDialog> {
                 children: [
                   const Icon(Icons.point_of_sale, color: Colors.white, size: 20),
                   const SizedBox(width: 8),
-                  const Text(
-                    'New Cafe Order Placement',
+                  Text(
+                    widget.orderToEdit != null ? 'Update Order ${widget.orderToEdit!.orderNumber}' : 'New Cafe Order Placement',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 16,
@@ -1089,8 +1382,8 @@ class _NewOrderDialogState extends ConsumerState<NewOrderDialog> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text(
-                                'Current Order Checkout',
+                              Text(
+                                widget.orderToEdit != null ? 'Edit Order Details' : 'Current Order Checkout',
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
@@ -1122,6 +1415,17 @@ class _NewOrderDialogState extends ConsumerState<NewOrderDialog> {
                             decoration: const InputDecoration(
                               labelText: 'Customer Name (Optional)',
                               prefixIcon: Icon(Icons.person_outline, size: 18),
+                              isDense: true,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          // Guest / Free Order Name field
+                          TextField(
+                            controller: _guestNameController,
+                            decoration: const InputDecoration(
+                              labelText: "Guest / Free Order Name (Optional)",
+                              hintText: "e.g. Guest Free Order, VIP Guest, Staff",
+                              prefixIcon: Icon(Icons.card_giftcard, size: 18, color: Colors.purple),
                               isDense: true,
                             ),
                           ),
@@ -1482,7 +1786,7 @@ class _NewOrderDialogState extends ConsumerState<NewOrderDialog> {
                                   onPressed: _cartItems.isEmpty
                                       ? null
                                       : () => _submitOrder(printSlip: false),
-                                  label: const Text('Place Order',
+                                  label: Text(widget.orderToEdit != null ? 'Update Order' : 'Place Order',
                                       style: TextStyle(
                                           fontWeight: FontWeight.bold,
                                           fontSize: 11,
@@ -1502,7 +1806,7 @@ class _NewOrderDialogState extends ConsumerState<NewOrderDialog> {
                                   onPressed: _cartItems.isEmpty
                                       ? null
                                       : () => _submitOrder(printSlip: true),
-                                  label: const Text('Place & Print',
+                                  label: Text(widget.orderToEdit != null ? 'Update & Print' : 'Place & Print',
                                       style: TextStyle(
                                           fontWeight: FontWeight.bold, fontSize: 11)),
                                 ),

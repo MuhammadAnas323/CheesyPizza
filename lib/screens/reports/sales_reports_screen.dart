@@ -90,49 +90,107 @@ class SalesReportsScreen extends ConsumerWidget {
             // Metrics Summary Cards
             LayoutBuilder(
               builder: (context, constraints) {
-                int crossAxisCount;
-                double aspectRatio;
-                if (constraints.maxWidth > 850) {
-                  crossAxisCount = 3;
-                  aspectRatio = 2.4;
-                } else if (constraints.maxWidth > 550) {
-                  crossAxisCount = 2;
-                  aspectRatio = 2.3;
-                } else {
-                  crossAxisCount = 1;
-                  aspectRatio = 2.8;
+                final isWide = constraints.maxWidth > 500;
+
+                // Row 1: Sales + Profit side-by-side (always)
+                // Row 2: Expenses + Completed Orders side-by-side (always)
+                Widget buildRow(Widget left, Widget right) {
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(child: left),
+                      const SizedBox(width: 14),
+                      Expanded(child: right),
+                    ],
+                  );
                 }
 
-                return GridView.count(
-                  crossAxisCount: crossAxisCount,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisSpacing: 14,
-                  mainAxisSpacing: 14,
-                  childAspectRatio: aspectRatio,
+                final profit = reportData.netProfit;
+                final isNegativeProfit = profit < 0;
+                final profitColor = isNegativeProfit ? Colors.red.shade700 : Colors.teal.shade700;
+                final profitBgColor = isNegativeProfit ? Colors.red.shade50 : Colors.teal.shade50;
+
+                // On very narrow screens (<380px) stack cards vertically
+                if (!isWide) {
+                  return Column(
+                    children: [
+                      _buildReportMetricCard(
+                        title: "Total Sales (${selectedPeriod.label})",
+                        value: CurrencyFormatter.format(reportData.totalRevenue),
+                        icon: Icons.payments,
+                        iconColor: AppColors.primaryRed,
+                        bgColor: AppColors.lightRed,
+                        subtitle: "Tap for Cash & Account details",
+                        onTap: () => _showSalesDetailDialog(context, reportData, selectedPeriod.label),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildReportMetricCard(
+                        title: "Net Profit (${selectedPeriod.label})",
+                        value: CurrencyFormatter.format(profit),
+                        icon: isNegativeProfit ? Icons.trending_down : Icons.trending_up,
+                        iconColor: profitColor,
+                        bgColor: profitBgColor,
+                        subtitle: isNegativeProfit ? "Loss: expenses exceed sales" : "Sales minus expenses",
+                      ),
+                      const SizedBox(height: 12),
+                      _buildReportMetricCard(
+                        title: "Total Expenses (${selectedPeriod.label})",
+                        value: CurrencyFormatter.format(reportData.totalExpenses),
+                        icon: Icons.receipt_long,
+                        iconColor: Colors.deepOrange,
+                        bgColor: Colors.deepOrange.withAlpha(25),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildReportMetricCard(
+                        title: "Completed Orders",
+                        value: "${reportData.totalOrdersCount}",
+                        icon: Icons.check_circle,
+                        iconColor: AppColors.success,
+                        bgColor: AppColors.successLight,
+                      ),
+                    ],
+                  );
+                }
+
+                return Column(
                   children: [
-                    _buildReportMetricCard(
-                      title: "Total Sales (${selectedPeriod.label})",
-                      value: CurrencyFormatter.format(reportData.totalRevenue),
-                      icon: Icons.payments,
-                      iconColor: AppColors.primaryRed,
-                      bgColor: AppColors.lightRed,
-                      subtitle: "Tap for Cash & Account details",
-                      onTap: () => _showSalesDetailDialog(context, reportData, selectedPeriod.label),
+                    // Row 1: Sales & Profit
+                    buildRow(
+                      _buildReportMetricCard(
+                        title: "Total Sales (${selectedPeriod.label})",
+                        value: CurrencyFormatter.format(reportData.totalRevenue),
+                        icon: Icons.payments,
+                        iconColor: AppColors.primaryRed,
+                        bgColor: AppColors.lightRed,
+                        subtitle: "Tap for Cash & Account details",
+                        onTap: () => _showSalesDetailDialog(context, reportData, selectedPeriod.label),
+                      ),
+                      _buildReportMetricCard(
+                        title: "Net Profit (${selectedPeriod.label})",
+                        value: CurrencyFormatter.format(profit),
+                        icon: isNegativeProfit ? Icons.trending_down : Icons.trending_up,
+                        iconColor: profitColor,
+                        bgColor: profitBgColor,
+                        subtitle: isNegativeProfit ? "Loss: expenses exceed sales" : "Sales minus expenses",
+                      ),
                     ),
-                    _buildReportMetricCard(
-                      title: "Total Expenses (${selectedPeriod.label})",
-                      value: CurrencyFormatter.format(reportData.totalExpenses),
-                      icon: Icons.receipt_long,
-                      iconColor: Colors.deepOrange,
-                      bgColor: Colors.deepOrange.withAlpha(25),
-                    ),
-                    _buildReportMetricCard(
-                      title: "Completed Orders",
-                      value: "${reportData.totalOrdersCount}",
-                      icon: Icons.check_circle,
-                      iconColor: AppColors.success,
-                      bgColor: AppColors.successLight,
+                    const SizedBox(height: 14),
+                    // Row 2: Expenses & Completed Orders
+                    buildRow(
+                      _buildReportMetricCard(
+                        title: "Total Expenses (${selectedPeriod.label})",
+                        value: CurrencyFormatter.format(reportData.totalExpenses),
+                        icon: Icons.receipt_long,
+                        iconColor: Colors.deepOrange,
+                        bgColor: Colors.deepOrange.withAlpha(25),
+                      ),
+                      _buildReportMetricCard(
+                        title: "Completed Orders",
+                        value: "${reportData.totalOrdersCount}",
+                        icon: Icons.check_circle,
+                        iconColor: AppColors.success,
+                        bgColor: AppColors.successLight,
+                      ),
                     ),
                   ],
                 );
@@ -427,46 +485,50 @@ class SalesReportsScreen extends ConsumerWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Padding(
-          padding: const EdgeInsets.all(18),
+          padding: const EdgeInsets.all(16),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Container(
-                width: 50,
-                height: 50,
+                width: 46,
+                height: 46,
                 decoration: BoxDecoration(
                   color: bgColor,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(icon, color: iconColor, size: 28),
+                child: Icon(icon, color: iconColor, size: 26),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       title,
                       style: const TextStyle(
-                        fontSize: 12,
+                        fontSize: 11.5,
                         color: AppColors.textMuted,
                         fontWeight: FontWeight.w500,
                       ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
                     FittedBox(
                       fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
                       child: Text(
                         value,
-                        style: const TextStyle(
-                          fontSize: 21,
+                        style: TextStyle(
+                          fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.textDark,
+                          color: iconColor,
                         ),
                       ),
                     ),
                     if (subtitle != null) ...[
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 3),
                       Text(
                         subtitle,
                         style: TextStyle(
@@ -474,13 +536,18 @@ class SalesReportsScreen extends ConsumerWidget {
                           color: iconColor,
                           fontWeight: FontWeight.w600,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ],
                 ),
               ),
               if (onTap != null)
-                const Icon(Icons.chevron_right, size: 20, color: AppColors.textMuted),
+                const Padding(
+                  padding: EdgeInsets.only(left: 4),
+                  child: Icon(Icons.chevron_right, size: 18, color: AppColors.textMuted),
+                ),
             ],
           ),
         ),
